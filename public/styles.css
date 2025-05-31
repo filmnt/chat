@@ -215,7 +215,7 @@ form.chat-form {
   max-height: 110px;
   box-sizing: border-box;
   resize: none;
-  margin-right: 10px;
+  margin-right: 0px;
 }
 .my-input-text,
 .message-input {
