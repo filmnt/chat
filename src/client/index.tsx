@@ -180,17 +180,15 @@ function App() {
         .sort((a, b) => b.timestamp - a.timestamp)
         .slice(0, MAX_MESSAGES);
 
-      systemMessages.current = systemMessages.current
-        .filter(msg => !uniqueMessages.some(m => m.id === msg.id))
-        .concat(uniqueMessages.filter(msg => msg.isSystem));
+      systemMessages.current = uniqueMessages
+        .filter(msg => msg.isSystem)
+        .concat(systemMessages.current.filter(msg => !uniqueMessages.some(m => m.id === msg.id)));
 
       const combinedMessages = [...nonSystemMessages, ...systemMessages.current]
         .sort((a, b) => b.timestamp - a.timestamp);
 
       dispatch({ type: 'SET_MESSAGES', payload: combinedMessages });
-      if (!fromExternal) {
-        localStorage.setItem(STORAGE_KEYS.MESSAGES, JSON.stringify([...nonSystemMessages, ...systemMessages.current]));
-      }
+      localStorage.setItem(STORAGE_KEYS.MESSAGES, JSON.stringify(combinedMessages));
       if (messagesContainerRef.current && !isUserScrolling) {
         messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
       }
@@ -208,7 +206,13 @@ function App() {
   }, [userId, name, nicknameColor, otherUserColors]);
 
   useEffect(() => {
-    if (!isInitialSyncComplete) return;
+    const storedMessages = localStorage.getItem(STORAGE_KEYS.MESSAGES);
+    if (storedMessages) {
+      const parsedMessages = JSON.parse(storedMessages);
+      systemMessages.current = parsedMessages.filter((msg: ChatMessage) => msg.isSystem);
+      updateMessages(parsedMessages);
+    }
+
     const lastGreetingTime = localStorage.getItem(STORAGE_KEYS.LAST_FILMNT_MESSAGE);
     const now = new Date();
     const fifteenMinutes = 15 * 60 * 1000;
@@ -240,6 +244,41 @@ function App() {
       }
       localStorage.setItem(STORAGE_KEYS.LAST_FILMNT_MESSAGE, now.getTime().toString());
     }
+
+    if (!isInitialSyncComplete) return;
+    const intervalId = setInterval(() => {
+      const lastGreetingTime = localStorage.getItem(STORAGE_KEYS.LAST_FILMNT_MESSAGE);
+      const now = new Date();
+      if (!lastGreetingTime || now.getTime() - parseInt(lastGreetingTime) >= fifteenMinutes) {
+        const hour = now.getHours();
+        let greetingMessageContent;
+        if (hour >= 5 && hour < 12) {
+          greetingMessageContent = `${morningGreeting} ${name}`;
+        } else if (hour >= 12 && hour < 18) {
+          greetingMessageContent = `${dayGreeting} ${name}`;
+        } else {
+          greetingMessageContent = `${eveningGreeting} ${name}`;
+        }
+        const greetingMessage: ChatMessage = {
+          id: nanoid(),
+          content: greetingMessageContent,
+          user: '🪴Filmnt',
+          role: 'Filmnt',
+          timestamp: now.getTime(),
+          isSystem: true,
+        };
+        if (!messages.some((msg) => msg.id === greetingMessage.id)) {
+          systemMessages.current = [...systemMessages.current, greetingMessage];
+          updateMessages([...messages, greetingMessage]);
+          safePostMessage({
+            type: 'systemMessage',
+            message: greetingMessage,
+          });
+        }
+        localStorage.setItem(STORAGE_KEYS.LAST_FILMNT_MESSAGE, now.getTime().toString());
+      }
+    }, fifteenMinutes);
+    return () => clearInterval(intervalId);
   }, [name, morningGreeting, dayGreeting, eveningGreeting, updateMessages, messages, isInitialSyncComplete]);
 
   const socket = usePartySocket({
