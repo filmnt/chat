@@ -1,5 +1,7 @@
-body,
 html {
+  font-size: 62.5%;
+}
+body {
   height: 100%;
   margin: 0;
   padding: 0;
@@ -8,12 +10,11 @@ html {
   font-family: 'Noto Sans', sans-serif;
   overflow-x: hidden;
   box-sizing: border-box;
+  font-size: 1.5em;
 }
-
 *, *:before, *:after {
   box-sizing: inherit;
 }
-
 #root {
   flex: 1;
   display: flex;
@@ -23,7 +24,6 @@ html {
   min-width: 320px;
   overflow-x: hidden;
 }
-
 .chat {
   flex: 1;
   display: flex;
@@ -34,7 +34,6 @@ html {
   min-height: 100vh;
   box-sizing: border-box;
 }
-
 .nickname-form {
   padding: 10px 0;
   text-align: right;
@@ -43,7 +42,6 @@ html {
   width: 100%;
   box-sizing: border-box;
 }
-
 .change-nickname {
   padding: 8px 12px;
   cursor: pointer;
@@ -54,7 +52,6 @@ html {
   border-radius: 4px;
   margin-right: 0;
 }
-
 .nickname-dialog {
   position: fixed;
   top: 0;
@@ -67,7 +64,6 @@ html {
   align-items: center;
   z-index: 1000;
 }
-
 .nickname-dialog-content {
   padding: 20px;
   border-radius: 5px;
@@ -78,7 +74,6 @@ html {
   height: 168px;
   position: relative;
 }
-
 .nickname-dialog-content .close-icon {
   position: absolute;
   right: 10px;
@@ -89,21 +84,17 @@ html {
   opacity: 1;
   line-height: 1;
 }
-
 .nickname-dialog-content .refresh-button i {
   font-size: 20px;
   opacity: 1;
   line-height: 1;
 }
-
 .nickname-dialog-content p {
   margin: 0 0 10px;
 }
-
 .nickname-dialog-content .input-container {
   margin-bottom: 10px;
 }
-
 .nickname-dialog-content input {
   width: 100%;
   padding: 5px;
@@ -111,14 +102,12 @@ html {
   height: 38px;
   display: block;
 }
-
 .dialog-buttons {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
   margin-top: auto;
 }
-
 .confirm-button,
 .refresh-button {
   padding: 8px 12px;
@@ -134,12 +123,10 @@ html {
   text-overflow: ellipsis;
   border-radius: 4px;
 }
-
 .refresh-button {
   min-width: 50px;
   max-width: 50px;
 }
-
 .messages {
   flex: 1;
   overflow-y: auto;
@@ -153,13 +140,11 @@ html {
   margin: 0;
   scrollbar-width: none;
   -ms-overflow-style: none;
-  padding-bottom: 60px;
+  padding-bottom: 15px;
 }
-
 .messages::-webkit-scrollbar {
   display: none;
 }
-
 .message {
   margin-bottom: 10px;
   display: flex;
@@ -167,7 +152,6 @@ html {
   width: 100%;
   gap: 10px;
 }
-
 .message .user {
   font-weight: bold;
   text-align: left;
@@ -178,13 +162,11 @@ html {
   max-width: 150px;
   padding-right: 0;
 }
-
 .message .message-content {
   flex: 1;
   margin-right: 0;
   white-space: pre-wrap;
 }
-
 .message .remove {
   position: absolute;
   width: 22px;
@@ -195,7 +177,6 @@ html {
   line-height: 18px;
   border: none;
 }
-
 form.chat-form {
   padding: 10px;
   display: flex;
@@ -210,8 +191,8 @@ form.chat-form {
   left: 10px;
   right: 10px;
   z-index: 1000;
+  margin-bottom:-15px
 }
-
 .nickname-box {
   padding: 8px 12px;
   font-size: 16px;
@@ -225,7 +206,6 @@ form.chat-form {
   cursor: pointer;
   touch-action: manipulation;
 }
-
 .message-input {
   display: block;
   flex-grow: 1;
@@ -237,69 +217,200 @@ form.chat-form {
   resize: none;
   margin-right: 10px;
 }
-
 .my-input-text,
 .message-input {
   border: 1px solid #D9D9D9;
   background: #FFFFFF;
 }
-
 .my-input-text::placeholder,
 .message-input::placeholder {
   color: #999999;
 }
-
+.button,
+button,
+input[type="submit"],
+input[type="reset"],
+input[type="button"] {
+  display: inline-block;
+  height: 38px;
+  padding: 0 30px;
+  color: #555;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 38px;
+  letter-spacing: 0.1rem;
+  text-transform: uppercase;
+  text-decoration: none;
+  white-space: nowrap;
+  background-color: transparent;
+  border-radius: 4px;
+  border: 1px solid #bbb;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+.button:hover,
+button:hover,
+input[type="submit"]:hover,
+input[type="reset"]:hover,
+input[type="button"]:hover,
+.button:focus,
+button:focus,
+input[type="submit"]:focus,
+input[type="reset"]:focus,
+input[type="button"]:focus {
+  color: #333;
+  border-color: #888;
+  outline: 0;
+}
+.button.button-primary,
+button.button-primary,
+input[type="submit"].button-primary,
+input[type="reset"].button-primary,
+input[type="button"].button-primary {
+  color: #fff;
+  background-color: #33c3f0;
+  border-color: #33c3f0;
+}
+.button.button-primary:hover,
+button.button-primary:hover,
+input[type="submit"].button-primary:hover,
+input[type="reset"].button-primary:hover,
+input[type="button"].button-primary:hover,
+.button.button-primary:focus,
+button.button-primary:focus,
+input[type="submit"].button-primary:focus,
+input[type="reset"].button-primary:focus,
+input[type="button"].button-primary:focus {
+  color: #fff;
+  background-color: #1eaedb;
+  border-color: #1eaedb;
+}
+input[type="email"],
+input[type="number"],
+input[type="search"],
+input[type="text"],
+input[type="tel"],
+input[type="url"],
+input[type="password"],
+textarea,
+select {
+  height: 38px;
+  padding: 6px 10px;
+  background-color: #fff;
+  border: 1px solid #d1d1d1;
+  border-radius: 4px;
+  box-shadow: none;
+  box-sizing: border-box;
+}
+input[type="email"],
+input[type="number"],
+input[type="search"],
+input[type="text"],
+input[type="tel"],
+input[type="url"],
+input[type="password"],
+textarea {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+textarea {
+  min-height: 65px;
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+input[type="email"]:focus,
+input[type="number"]:focus,
+input[type="search"]:focus,
+input[type="text"]:focus,
+input[type="tel"]:focus,
+input[type="url"]:focus,
+input[type="password"]:focus,
+textarea:focus,
+select:focus {
+  border: 1px solid #33c3f0;
+  outline: 0;
+}
+label,
+legend {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+}
+fieldset {
+  padding: 0;
+  border-width: 0;
+}
+input[type="checkbox"],
+input[type="radio"] {
+  display: inline;
+}
+label > .label-body {
+  display: inline-block;
+  margin-left: 0.5rem;
+  font-weight: normal;
+}
+button,
+.button {
+  margin-bottom: 1rem;
+}
+input,
+textarea,
+select,
+fieldset {
+  margin-bottom: 1.5rem;
+}
+pre,
+blockquote,
+dl,
+figure,
+table,
+p,
+ul,
+ol {
+  margin-bottom: 2.5rem;
+}
 :root[saved-theme="light"],
 html[saved-theme="light"] {
   background: #E8E8E8;
   color: #333333;
 }
-
 :root[saved-theme="light"] .chat {
   background: #E8E8E8;
 }
-
 :root[saved-theme="light"] .nickname-form {
   background: #E8E8E8;
   border-bottom: 1px solid #D9D9D9;
 }
-
 :root[saved-theme="light"] .nickname-dialog-content {
   background: #F5F5F5;
 }
-
 :root[saved-theme="light"] .nickname-dialog-content p {
   color: #333333;
 }
-
 :root[saved-theme="light"] .nickname-dialog-content .close-icon {
   color: #333333 !important;
 }
-
 :root[saved-theme="light"] .nickname-dialog-content .refresh-button i {
   color: #333333 !important;
 }
-
 :root[saved-theme="light"] .messages {
   background: #E8E8E8;
 }
-
 :root[saved-theme="light"] .message .message-content {
   color: #333333;
 }
-
 :root[saved-theme="light"] .my-input-text,
 :root[saved-theme="light"] .message-input {
   border: 1px solid #D9D9D9;
   color: #333333;
   background: #FFFFFF;
 }
-
 :root[saved-theme="light"] .my-input-text::placeholder,
 :root[saved-theme="light"] .message-input::placeholder {
   color: #999999;
 }
-
 :root[saved-theme="light"] .change-nickname,
 :root[saved-theme="light"] .confirm-button,
 :root[saved-theme="light"] .refresh-button,
@@ -308,62 +419,49 @@ html[saved-theme="light"] {
   background: #E6E6E6;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
-
 :root[saved-theme="light"] form.chat-form {
   background: #E8E8E8;
 }
-
 :root[saved-theme="dark"],
 html[saved-theme="dark"] {
   background: #1A1A1A;
   color: #FFFFFF;
 }
-
 :root[saved-theme="dark"] .chat {
   background: #1A1A1A;
 }
-
 :root[saved-theme="dark"] .nickname-form {
   background: #1A1A1A;
   border-bottom: 1px solid #4A4A4A;
 }
-
 :root[saved-theme="dark"] .nickname-dialog-content {
   background: #2A2A2A;
 }
-
 :root[saved-theme="dark"] .nickname-dialog-content p {
   color: #FFFFFF;
 }
-
 :root[saved-theme="dark"] .nickname-dialog-content .close-icon {
   color: #FFFFFF !important;
 }
-
 :root[saved-theme="dark"] .nickname-dialog-content .refresh-button i {
   color: #FFFFFF !important;
 }
-
 :root[saved-theme="dark"] .messages {
   background: #1A1A1A;
 }
-
 :root[saved-theme="dark"] .message .message-content {
   color: #FFFFFF;
 }
-
 :root[saved-theme="dark"] .my-input-text,
 :root[saved-theme="dark"] .message-input {
   border: 1px solid #4A4A4A;
   color: #FFFFFF;
   background: #2A2A2A;
 }
-
 :root[saved-theme="dark"] .my-input-text::placeholder,
 :root[saved-theme="dark"] .message-input::placeholder {
   color: #B0B0B0;
 }
-
 :root[saved-theme="dark"] .change-nickname,
 :root[saved-theme="dark"] .confirm-button,
 :root[saved-theme="dark"] .refresh-button,
@@ -373,7 +471,6 @@ html[saved-theme="dark"] {
   background: #444444;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
-
 :root[saved-theme="dark"] form.chat-form {
   background: #1A1A1A;
 }
