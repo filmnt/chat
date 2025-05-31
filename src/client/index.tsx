@@ -100,7 +100,7 @@ function App() {
     nicknameColor: (() => {
       let color = localStorage.getItem(STORAGE_KEYS.NICKNAME_COLOR);
       if (!color) {
-        color = getRandomColor(['#555']);
+        color = getRandomColor(['#64B5F6']);
         localStorage.setItem(STORAGE_KEYS.NICKNAME_COLOR, color);
       }
       return color;
@@ -157,8 +157,8 @@ function App() {
 
   const assignOtherUserColor = useCallback(
     (user: string) => {
-      if (otherUserColors[user] && otherUserColors[user] !== '#555') return otherUserColors[user];
-      const excludeColors = ['#555', nicknameColor, ...Object.values(otherUserColors).filter(c => c !== '#555')];
+      if (otherUserColors[user] && otherUserColors[user] !== '#64B5F6') return otherUserColors[user];
+      const excludeColors = ['#64B5F6', nicknameColor, ...Object.values(otherUserColors).filter(c => c !== '#64B5F6')];
       const color = getRandomColor(excludeColors);
       dispatch({ type: 'SET_OTHER_USER_COLOR', payload: { user, color } });
       localStorage.setItem(STORAGE_KEYS.OTHER_USER_COLORS, JSON.stringify({ ...otherUserColors, [user]: color }));
@@ -399,7 +399,7 @@ function App() {
       dispatch({ type: 'TOGGLE_NAME_CHANGE', payload: false });
       return;
     }
-    const newColor = getRandomColor(['#555']);
+    const newColor = getRandomColor(['#64B5F6']);
     dispatch({
       type: 'SET_NICKNAME_NAME',
       payload: { name: trimmedName, newName: trimmedName },
@@ -440,7 +440,7 @@ function App() {
 
   const handleColorChange = useCallback(() => {
     try {
-      const excludeColors = ['#555', ...Object.values(otherUserColors).filter(c => c !== '#555')];
+      const excludeColors = ['#64B5F6', ...Object.values(otherUserColors).filter(c => c !== '#64B5F6')];
       const newColor = getRandomColor(excludeColors);
       dispatch({
         type: 'SET_NICKNAME_COLOR',
@@ -450,7 +450,7 @@ function App() {
       const updatedOtherUserColors = { ...otherUserColors };
       Object.keys(updatedOtherUserColors).forEach((user) => {
         if (updatedOtherUserColors[user] === newColor) {
-          const userExcludeColors = ['#555', newColor, ...Object.values(updatedOtherUserColors).filter(c => c !== '#555' && c !== newColor)];
+          const userExcludeColors = ['#64B5F6', newColor, ...Object.values(updatedOtherUserColors).filter(c => c !== '#64B5F6' && c !== newColor)];
           updatedOtherUserColors[user] = getRandomColor(userExcludeColors);
         }
       });
@@ -538,7 +538,7 @@ function App() {
               className="user"
               style={{
                 color: message.isSystem
-                  ? '#555'
+                  ? '#64B5F6'
                   : message.userId === userId
                   ? nicknameColor
                   : otherUserColors[message.user] || assignOtherUserColor(message.user),
