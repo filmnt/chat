@@ -1,131 +1,626 @@
-import { createRoot } from "react-dom/client";
-import { usePartySocket } from "partysocket/react";
-import React, { useState } from "react";
+import { createRoot } from 'react-dom/client';
+import { usePartySocket } from 'partysocket/react';
+import React, { useReducer, useEffect, useRef, useCallback, useState } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { nanoid } from 'nanoid';
 import {
-  BrowserRouter,
-  Routes,
-  Route,
-  Navigate,
-  useParams,
-} from "react-router";
-import { nanoid } from "nanoid";
+  getRandomName,
+  getTranslations,
+  type ChatMessage,
+  MIN_NICKNAME_LENGTH,
+  MAX_NICKNAME_LENGTH,
+  MAX_MESSAGE_LENGTH,
+  validateNickname,
+  getRandomColor,
+  STORAGE_KEYS,
+  generateUserId,
+  MESSAGE_PERSISTENCE_HOURS,
+} from '../shared';
 
-import { names, type ChatMessage, type Message } from "../shared";
+interface ChatState {
+  userId: string;
+  name: string;
+  nicknameColor: string;
+  otherUserColors: Record<string, string>;
+  messages: ChatMessage[];
+  newName: string;
+  showNameChange: boolean;
+  theme: string;
+  isConnected: boolean;
+  error: string | null;
+}
+
+type ChatAction =
+  | { type: 'INIT_STATE'; payload: Partial<ChatState> }
+  | { type: 'SET_NICKNAME_NAME'; payload: { name: string; newName: string } }
+  | { type: 'SET_NICKNAME_COLOR'; payload: { color: string } }
+  | { type: 'SET_OTHER_USER_COLOR'; payload: { user: string; color: string } }
+  | { type: 'SET_MESSAGES'; payload: ChatMessage[] }
+  | { type: 'SET_NEW_NAME'; payload: string }
+  | { type: 'TOGGLE_NAME_CHANGE'; payload: boolean }
+  | { type: 'SET_THEME'; payload: string }
+  | { type: 'SET_CONNECTION'; payload: boolean }
+  | { type: 'SET_ERROR'; payload: string | null };
+
+const chatReducer = (state: ChatState, action: ChatAction): ChatState => {
+  switch (action.type) {
+    case 'INIT_STATE':
+      return { ...state, ...action.payload };
+    case 'SET_NICKNAME_NAME':
+      return {
+        ...state,
+        name: action.payload.name,
+        newName: action.payload.newName,
+      };
+    case 'SET_NICKNAME_COLOR':
+      return {
+        ...state,
+        nicknameColor: action.payload.color,
+      };
+    case 'SET_OTHER_USER_COLOR':
+      return {
+        ...state,
+        otherUserColors: { ...state.otherUserColors, [action.payload.user]: action.payload.color },
+      };
+    case 'SET_MESSAGES':
+      return { ...state, messages: action.payload };
+    case 'SET_NEW_NAME':
+      return { ...state, newName: action.payload };
+    case 'TOGGLE_NAME_CHANGE':
+      return { ...state, showNameChange: action.payload };
+    case 'SET_THEME':
+      return { ...state, theme: action.payload };
+    case 'SET_CONNECTION':
+      return { ...state, isConnected: action.payload };
+    case 'SET_ERROR':
+      return { ...state, error: action.payload };
+    default:
+      return state;
+  }
+};
 
 function App() {
-  const [name] = useState(names[Math.floor(Math.random() * names.length)]);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const { room } = useParams();
+  const [state, dispatch] = useReducer(chatReducer, {
+    userId: (() => {
+      let id = localStorage.getItem(STORAGE_KEYS.USER_ID);
+      if (!id) {
+        id = generateUserId();
+        localStorage.setItem(STORAGE_KEYS.USER_ID, id);
+      }
+      return id;
+    })(),
+    name: (() => {
+      let storedName = localStorage.getItem(STORAGE_KEYS.NICKNAME);
+      if (!storedName) {
+        storedName = getRandomName();
+        localStorage.setItem(STORAGE_KEYS.NICKNAME, storedName);
+      }
+      return storedName;
+    })(),
+    nicknameColor: (() => {
+      let color = localStorage.getItem(STORAGE_KEYS.NICKNAME_COLOR);
+      if (!color) {
+        color = getRandomColor(['#555']);
+        localStorage.setItem(STORAGE_KEYS.NICKNAME_COLOR, color);
+      }
+      return color;
+    })(),
+    otherUserColors: (() => {
+      const stored = localStorage.getItem(STORAGE_KEYS.OTHER_USER_COLORS);
+      return stored ? JSON.parse(stored) : {};
+    })(),
+    messages: (() => {
+      const stored = localStorage.getItem(STORAGE_KEYS.MESSAGES);
+      return stored ? JSON.parse(stored) : [];
+    })(),
+    newName: localStorage.getItem(STORAGE_KEYS.NICKNAME) || getRandomName(),
+    showNameChange: false,
+    theme: localStorage.getItem('theme') || 'dark',
+    isConnected: false,
+    error: null,
+  });
+
+  const { userId, name, nicknameColor, otherUserColors, messages, newName, showNameChange, theme, isConnected, error } = state;
+  const [isInitialSyncComplete, setSyncStatus] = useState(false);
+  const [isUserScrolling, setIsUserScrolling] = useState(false);
+  const room = 'main';
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const nameInputRef = useRef<HTMLInputElement>(null);
+  const messageInputRef = useRef<HTMLTextAreaElement>(null);
+  const processedMessages = useRef<Set<string>>(new Set());
+  const systemMessages = useRef<ChatMessage[]>([]);
+  const { placeholder, changeNickname, confirm, nicknameLabel, morningGreeting, dayGreeting, eveningGreeting, nicknameChanged } = getTranslations();
+  const MAX_MESSAGES = 1000;
+
+  const websocketHost = window.location.hostname.includes('localhost')
+    ? `ws://${window.location.hostname}:3600/chat`
+    : 'wss://chat.filmnt.workers.dev/chat';
+
+  const allowedOrigins = [
+    'http://localhost:3600',
+    'http://localhost:8080',
+    'https://filmnt.github.io',
+    'https://filmnt.pages.dev',
+    'https://chat.filmnt.workers.dev',
+    'http://mac:8080',
+    'http://tab:8080',
+  ];
+
+  const safePostMessage = (message: any, targetOrigin: string = '*') => {
+    try {
+      window.top?.postMessage(message, targetOrigin);
+    } catch (e) {
+      console.error('Failed to post message:', e);
+    }
+  };
+
+  const assignOtherUserColor = useCallback(
+    (user: string) => {
+      if (otherUserColors[user] && otherUserColors[user] !== '#555') return otherUserColors[user];
+      const excludeColors = ['#555', nicknameColor, ...Object.values(otherUserColors).filter(c => c !== '#555')];
+      const color = getRandomColor(excludeColors);
+      dispatch({ type: 'SET_OTHER_USER_COLOR', payload: { user, color } });
+      localStorage.setItem(STORAGE_KEYS.OTHER_USER_COLORS, JSON.stringify({ ...otherUserColors, [user]: color }));
+      return color;
+    },
+    [otherUserColors, nicknameColor]
+  );
+
+  const updateMessages = useCallback((newMessages: ChatMessage[], fromExternal = false) => {
+    try {
+      const now = Date.now();
+      const cutoff = now - MESSAGE_PERSISTENCE_HOURS * 60 * 60 * 1000;
+      const uniqueMessages = newMessages
+        .filter((msg, index, self) => self.findIndex(m => m.id === msg.id) === index)
+        .filter(msg => msg.isSystem || msg.timestamp >= cutoff);
+
+      const nonSystemMessages = uniqueMessages
+        .filter(msg => !msg.isSystem)
+        .sort((a, b) => b.timestamp - a.timestamp)
+        .slice(0, MAX_MESSAGES);
+
+      systemMessages.current = systemMessages.current
+        .filter(msg => !uniqueMessages.some(m => m.id === msg.id))
+        .concat(uniqueMessages.filter(msg => msg.isSystem));
+
+      const combinedMessages = [...nonSystemMessages, ...systemMessages.current]
+        .sort((a, b) => b.timestamp - a.timestamp);
+
+      dispatch({ type: 'SET_MESSAGES', payload: combinedMessages });
+      if (!fromExternal) {
+        localStorage.setItem(STORAGE_KEYS.MESSAGES, JSON.stringify([...nonSystemMessages, ...systemMessages.current]));
+      }
+      if (messagesContainerRef.current && !isUserScrolling) {
+        messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+      }
+    } catch (error) {
+      console.error('Error updating messages:', error);
+      dispatch({ type: 'SET_ERROR', payload: 'Failed to update messages' });
+    }
+  }, [isUserScrolling]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.USER_ID, userId);
+    localStorage.setItem(STORAGE_KEYS.NICKNAME, name);
+    localStorage.setItem(STORAGE_KEYS.NICKNAME_COLOR, nicknameColor);
+    localStorage.setItem(STORAGE_KEYS.OTHER_USER_COLORS, JSON.stringify(otherUserColors));
+  }, [userId, name, nicknameColor, otherUserColors]);
+
+  useEffect(() => {
+    if (!isInitialSyncComplete) return;
+    const lastGreetingTime = localStorage.getItem(STORAGE_KEYS.LAST_FILMNT_MESSAGE);
+    const now = new Date();
+    const oneHour = 60 * 60 * 1000;
+    if (!lastGreetingTime || now.getTime() - parseInt(lastGreetingTime) >= oneHour) {
+      const hour = now.getHours();
+      let greetingMessageContent;
+      if (hour >= 5 && hour < 12) {
+        greetingMessageContent = `${morningGreeting} ${name}`;
+      } else if (hour >= 12 && hour < 18) {
+        greetingMessageContent = `${dayGreeting} ${name}`;
+      } else {
+        greetingMessageContent = `${eveningGreeting} ${name}`;
+      }
+      const greetingMessage: ChatMessage = {
+        id: nanoid(),
+        content: greetingMessageContent,
+        user: '🪴Filmnt',
+        role: 'Filmnt',
+        timestamp: now.getTime(),
+        isSystem: true,
+      };
+      if (!messages.some((msg) => msg.id === greetingMessage.id)) {
+        systemMessages.current = [...systemMessages.current, greetingMessage];
+        updateMessages([...messages, greetingMessage]);
+        safePostMessage({
+          type: 'systemMessage',
+          message: greetingMessage,
+        });
+      }
+      localStorage.setItem(STORAGE_KEYS.LAST_FILMNT_MESSAGE, now.getTime().toString());
+    }
+  }, [name, morningGreeting, dayGreeting, eveningGreeting, updateMessages, messages, isInitialSyncComplete]);
 
   const socket = usePartySocket({
-    party: "chat",
+    host: websocketHost,
+    party: 'chat',
     room,
+    onOpen: () => {
+      dispatch({ type: 'SET_CONNECTION', payload: true });
+      dispatch({ type: 'SET_ERROR', payload: null });
+      socket.send(JSON.stringify({ type: 'requestSync' }));
+    },
     onMessage: (evt) => {
-      const message = JSON.parse(evt.data as string) as Message;
-      if (message.type === "add") {
-        const foundIndex = messages.findIndex((m) => m.id === message.id);
-        if (foundIndex === -1) {
-          // probably someone else who added a message
-          setMessages((messages) => [
-            ...messages,
-            {
+      try {
+        const message = JSON.parse(evt.data);
+        if (message.type === 'add') {
+          const exists = messages.some((m) => m.id === message.id);
+          if (!exists) {
+            const newMessage: ChatMessage = {
               id: message.id,
               content: message.content,
               user: message.user,
-              role: message.role,
-            },
-          ]);
-        } else {
-          // this usually means we ourselves added a message
-          // and it was broadcasted back
-          // so let's replace the message with the new message
-          setMessages((messages) => {
-            return messages
-              .slice(0, foundIndex)
-              .concat({
-                id: message.id,
-                content: message.content,
-                user: message.user,
-                role: message.role,
-              })
-              .concat(messages.slice(foundIndex + 1));
-          });
-        }
-      } else if (message.type === "update") {
-        setMessages((messages) =>
-          messages.map((m) =>
+              userId: message.userId,
+              role: message.user,
+              timestamp: message.timestamp || Date.now(),
+              isSystem: false,
+            };
+            if (message.userId !== userId) {
+              assignOtherUserColor(message.user);
+            }
+            updateMessages([...messages, newMessage], true);
+          }
+        } else if (message.type === 'update') {
+          const updatedMessages = messages.map((m) =>
             m.id === message.id
               ? {
                   id: message.id,
                   content: message.content,
                   user: message.user,
-                  role: message.role,
+                  userId: message.userId,
+                  role: message.user,
+                  timestamp: message.timestamp,
+                  isSystem: false,
                 }
-              : m,
-          ),
-        );
-      } else {
-        setMessages(message.messages);
+              : m
+          );
+          updateMessages(updatedMessages, true);
+        } else if (message.type === 'sync') {
+          const now = Date.now();
+          const cutoff = now - MESSAGE_PERSISTENCE_HOURS * 60 * 60 * 1000;
+          const serverMessages = message.messages
+            .filter((msg: ChatMessage) => msg.timestamp >= cutoff && !msg.isSystem)
+            .sort((a: ChatMessage, b: ChatMessage) => b.timestamp - a.timestamp)
+            .slice(0, MAX_MESSAGES);
+          const existingIds = new Set(messages.filter(m => !m.isSystem).map(m => m.id));
+          const newMessages = serverMessages.filter((msg: ChatMessage) => !existingIds.has(msg.id));
+          const combinedMessages = [...messages.filter(m => !m.isSystem), ...newMessages]
+            .sort((a, b) => b.timestamp - a.timestamp)
+            .slice(0, MAX_MESSAGES);
+          updateMessages([...systemMessages.current, ...combinedMessages], true);
+          serverMessages.forEach((msg: ChatMessage) => {
+            if (msg.userId !== userId && !otherUserColors[msg.user]) {
+              assignOtherUserColor(msg.user);
+            }
+          });
+          setSyncStatus(true);
+        } else if (message.type === 'error') {
+          dispatch({ type: 'SET_ERROR', payload: message.message });
+        }
+      } catch (error) {
+        console.error('WebSocket message error:', error);
+        dispatch({ type: 'SET_ERROR', payload: 'Failed to process server message' });
       }
+    },
+    onError: () => {
+      dispatch({ type: 'SET_CONNECTION', payload: false });
+      dispatch({ type: 'SET_ERROR', payload: 'Please wait a moment...' });
+    },
+    onClose: () => {
+      dispatch({ type: 'SET_CONNECTION', payload: false });
+      dispatch({ type: 'SET_ERROR', payload: 'WebSocket connection closed' });
     },
   });
 
+  useEffect(() => {
+    document.documentElement.setAttribute('saved-theme', theme);
+    localStorage.setItem('theme', theme);
+
+    const handleMessage = (event: MessageEvent) => {
+      if (!allowedOrigins.includes(event.origin)) {
+        return;
+      }
+
+      try {
+        if (event.data.type === 'themeChange' && ['light', 'dark'].includes(event.data.theme)) {
+          dispatch({ type: 'SET_THEME', payload: event.data.theme });
+        } else if (event.data.type === 'nicknameChange') {
+          const { newName, newColor, userId: incomingUserId } = event.data;
+          if (!processedMessages.current.has(newName + newColor)) {
+            dispatch({
+              type: 'SET_NICKNAME_NAME',
+              payload: { name: newName, newName },
+            });
+            dispatch({
+              type: 'SET_NICKNAME_COLOR',
+              payload: { color: newColor },
+            });
+            localStorage.setItem(STORAGE_KEYS.NICKNAME, newName);
+            localStorage.setItem(STORAGE_KEYS.NICKNAME_COLOR, newColor);
+            processedMessages.current.add(newName + newColor);
+          }
+        } else if (event.data.type === 'systemMessage') {
+          const { message } = event.data;
+          if (!messages.some((msg) => msg.id === message.id) && !processedMessages.current.has(message.id)) {
+            systemMessages.current = [...systemMessages.current, message];
+            updateMessages([...messages, message]);
+            processedMessages.current.add(message.id);
+          }
+        }
+      } catch (error) {
+        console.error('Error handling postMessage:', error);
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => {
+      window.removeEventListener('message', handleMessage);
+    };
+  }, [userId, theme, messages, updateMessages]);
+
+  useEffect(() => {
+    if (showNameChange && nameInputRef.current) {
+      nameInputRef.current.focus();
+    }
+  }, [showNameChange]);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (messagesContainerRef.current) {
+        const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
+        const isAtBottom = scrollHeight - scrollTop - clientHeight < 10;
+        setIsUserScrolling(!isAtBottom);
+      }
+    };
+    messagesContainerRef.current?.addEventListener('scroll', handleScroll);
+    return () => {
+      messagesContainerRef.current?.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
+
+  const handleNameChange = useCallback(() => {
+    if (!newName.trim() || !validateNickname(newName)) {
+      dispatch({ type: 'SET_ERROR', payload: 'Invalid nickname' });
+      return;
+    }
+    const trimmedName = newName.trim().slice(0, MAX_NICKNAME_LENGTH);
+    if (trimmedName === name) {
+      dispatch({ type: 'TOGGLE_NAME_CHANGE', payload: false });
+      return;
+    }
+    const newColor = getRandomColor(['#555']);
+    dispatch({
+      type: 'SET_NICKNAME_NAME',
+      payload: { name: trimmedName, newName: trimmedName },
+    });
+    dispatch({
+      type: 'SET_NICKNAME_COLOR',
+      payload: { color: newColor },
+    });
+    localStorage.setItem(STORAGE_KEYS.NICKNAME, trimmedName);
+    localStorage.setItem(STORAGE_KEYS.NICKNAME_COLOR, newColor);
+    const nicknameChangeMessage: ChatMessage = {
+      id: nanoid(),
+      content: nicknameChanged,
+      user: '🪴Filmnt',
+      role: 'Filmnt',
+      timestamp: Date.now(),
+      isSystem: true,
+    };
+    if (!messages.some((msg) => msg.id === nicknameChangeMessage.id)) {
+      systemMessages.current = [...systemMessages.current, nicknameChangeMessage];
+      updateMessages([...messages, nicknameChangeMessage]);
+      safePostMessage({
+        type: 'systemMessage',
+        message: nicknameChangeMessage,
+      });
+    }
+    dispatch({ type: 'TOGGLE_NAME_CHANGE', payload: false });
+    if (!processedMessages.current.has(trimmedName + newColor)) {
+      safePostMessage({
+        type: 'nicknameChange',
+        userId,
+        newName: trimmedName,
+        newColor,
+      });
+      processedMessages.current.add(trimmedName + newColor);
+    }
+  }, [newName, name, userId, nicknameChanged, messages, updateMessages]);
+
+  const handleColorChange = useCallback(() => {
+    try {
+      const excludeColors = ['#555', ...Object.values(otherUserColors).filter(c => c !== '#555')];
+      const newColor = getRandomColor(excludeColors);
+      dispatch({
+        type: 'SET_NICKNAME_COLOR',
+        payload: { color: newColor },
+      });
+      localStorage.setItem(STORAGE_KEYS.NICKNAME_COLOR, newColor);
+      const updatedOtherUserColors = { ...otherUserColors };
+      Object.keys(updatedOtherUserColors).forEach((user) => {
+        if (updatedOtherUserColors[user] === newColor) {
+          const userExcludeColors = ['#555', newColor, ...Object.values(updatedOtherUserColors).filter(c => c !== '#555' && c !== newColor)];
+          updatedOtherUserColors[user] = getRandomColor(userExcludeColors);
+        }
+      });
+      dispatch({ type: 'INIT_STATE', payload: { otherUserColors: updatedOtherUserColors } });
+      localStorage.setItem(STORAGE_KEYS.OTHER_USER_COLORS, JSON.stringify(updatedOtherUserColors));
+    } catch (error) {
+      console.error('Error in handleColorChange:', error);
+    }
+  }, [otherUserColors]);
+
+  const handleRandomName = () => {
+    const randomName = getRandomName();
+    dispatch({ type: 'SET_NEW_NAME', payload: randomName });
+  };
+
+  const handleMessageSubmit = useCallback(() => {
+    if (messageInputRef.current && messageInputRef.current.value.trim() && isConnected) {
+      const content = messageInputRef.current.value.trim().slice(0, MAX_MESSAGE_LENGTH);
+      const chatMessage: ChatMessage = {
+        id: nanoid(),
+        content,
+        user: name,
+        userId,
+        role: name,
+        timestamp: Date.now(),
+        isSystem: false,
+      };
+      updateMessages([...messages, chatMessage]);
+      socket.send(JSON.stringify({ type: 'add', ...chatMessage }));
+      messageInputRef.current.value = '';
+      adjustInputHeight();
+    } else if (!isConnected) {
+      dispatch({ type: 'SET_ERROR', payload: 'Cannot send message: server disconnected' });
+    }
+  }, [isConnected, name, userId, messages, socket, updateMessages]);
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        handleMessageSubmit();
+      }
+    },
+    [handleMessageSubmit]
+  );
+
+  const adjustInputHeight = useCallback(() => {
+    if (messageInputRef.current) {
+      const textarea = messageInputRef.current;
+      textarea.style.height = '38px';
+      const lineHeight = parseFloat(getComputedStyle(textarea).lineHeight);
+      const maxLines = 5;
+      const maxHeight = lineHeight * maxLines;
+      const scrollHeight = textarea.scrollHeight;
+      const newHeight = Math.min(scrollHeight, maxHeight);
+      textarea.style.height = `${newHeight}px`;
+      textarea.style.overflowY = newHeight >= maxHeight ? 'auto' : 'hidden';
+    }
+  }, []);
+
+  useEffect(() => {
+    if (messageInputRef.current) {
+      messageInputRef.current.addEventListener('input', adjustInputHeight);
+      adjustInputHeight();
+    }
+    return () => {
+      if (messageInputRef.current) {
+        messageInputRef.current.removeEventListener('input', adjustInputHeight);
+      }
+    };
+  }, [adjustInputHeight]);
+
   return (
-    <div className="chat container">
-      {messages.map((message) => (
-        <div key={message.id} className="row message">
-          <div className="two columns user">{message.user}</div>
-          <div className="ten columns">{message.content}</div>
-        </div>
-      ))}
+    <div className="chat">
+      {error && <div className="error-message">{error}</div>}
+      <div className="nickname-form">
+        <button className="change-nickname" onClick={() => dispatch({ type: 'TOGGLE_NAME_CHANGE', payload: true })}>
+          {changeNickname}
+        </button>
+      </div>
+      <div className="messages" ref={messagesContainerRef}>
+        {messages.map((message) => (
+          <div key={message.id} className="message">
+            <div
+              className="user"
+              style={{
+                color: message.isSystem
+                  ? '#555'
+                  : message.userId === userId
+                  ? nicknameColor
+                  : otherUserColors[message.user] || assignOtherUserColor(message.user),
+              }}
+            >
+              {message.user}
+            </div>
+            <div
+              className="message-content"
+              style={{ fontWeight: message.userId === userId ? 'bold' : 'normal' }}
+            >
+              {message.content}
+            </div>
+          </div>
+        ))}
+        <div ref={messagesEndRef} />
+      </div>
       <form
-        className="row"
+        className="chat-form"
         onSubmit={(e) => {
           e.preventDefault();
-          const content = e.currentTarget.elements.namedItem(
-            "content",
-          ) as HTMLInputElement;
-          const chatMessage: ChatMessage = {
-            id: nanoid(8),
-            content: content.value,
-            user: name,
-            role: "user",
-          };
-          setMessages((messages) => [...messages, chatMessage]);
-          // we could broadcast the message here
-
-          socket.send(
-            JSON.stringify({
-              type: "add",
-              ...chatMessage,
-            } satisfies Message),
-          );
-
-          content.value = "";
+          handleMessageSubmit();
         }}
       >
-        <input
-          type="text"
-          name="content"
-          className="ten columns my-input-text"
-          placeholder={`Hello ${name}! Type a message...`}
-          autoComplete="off"
-        />
-        <button type="submit" className="send-message two columns">
-          Send
+        <button
+          className="nickname-box"
+          style={{ color: nicknameColor }}
+          onClick={handleColorChange}
+          onTouchStart={handleColorChange}
+        >
+          {name}
         </button>
+        <textarea
+          name="content"
+          className="message-input"
+          placeholder={placeholder}
+          autoComplete="off"
+          maxLength={MAX_MESSAGE_LENGTH}
+          disabled={!isConnected}
+          ref={messageInputRef}
+          onKeyDown={handleKeyDown}
+          style={{ whiteSpace: 'pre-wrap' }}
+        />
       </form>
+      {showNameChange && (
+        <div className="nickname-dialog">
+          <div className="nickname-dialog-content">
+            <i className="fa-solid fa-xmark fa-xl close-icon" onClick={() => dispatch({ type: 'TOGGLE_NAME_CHANGE', payload: false })}></i>
+            <p>{nicknameLabel}</p>
+            <div className="input-container">
+              <input
+                type="text"
+                value={newName}
+                onChange={(e) => dispatch({ type: 'SET_NEW_NAME', payload: e.target.value })}
+                className="my-input-text"
+                ref={nameInputRef}
+                maxLength={MAX_NICKNAME_LENGTH}
+                minLength={MIN_NICKNAME_LENGTH}
+                autoComplete="off"
+              />
+            </div>
+            <div className="dialog-buttons">
+              <button type="button" className="refresh-button" onClick={handleRandomName}>
+                <i className="fa-solid fa-rotate fa-lg"></i>
+              </button>
+              <button type="button" className="confirm-button" onClick={handleNameChange}>
+                {confirm}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-createRoot(document.getElementById("root")!).render(
+const root = createRoot(document.getElementById('root')!);
+root.render(
   <BrowserRouter>
     <Routes>
-      <Route path="/" element={<Navigate to={`/${nanoid()}`} />} />
-      <Route path="/:room" element={<App />} />
-      <Route path="*" element={<Navigate to="/" />} />
+      <Route path="/" element={<App />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
-  </BrowserRouter>,
+  </BrowserRouter>
 );

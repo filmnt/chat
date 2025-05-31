@@ -15,24 +15,26 @@
     "publish": true
   },
   "dependencies": {
-    "nanoid": "5.1.5",
+    "nanoid": "5.0.7",
     "partyserver": "0.0.66",
-    "partysocket": "1.1.3",
+    "partysocket": "1.0.2",
     "react": "18.3.1",
     "react-dom": "18.3.1",
-    "react-router": "7.5.2"
+    "react-router-dom": "6.26.2"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250529.0",
     "@types/react": "18.3.12",
-    "@types/react-dom": "18.3.1",
+    "@types/react-dom": "18.3.0",
     "esbuild": "0.25.2",
-    "typescript": "5.8.3",
-    "wrangler": "4.16.1"
+    "typescript": "5.6.3",
+    "wrangler": "4.18.0"
   },
   "scripts": {
-    "cf-typegen": "wrangler types ./src/server/worker-configuration.d.ts",
+    "cf-typegen": "wrangler types src/server/worker-configuration.d.ts",
     "check": "tsc --project src/client && tsc --project src/server && wrangler deploy --dry-run",
-    "deploy": "wrangler deploy",
-    "dev": "wrangler dev"
+    "deploy": "wrangler deploy src/server/index.ts",
+    "dev": "wrangler dev src/server/index.ts --port 3600",
+    "build": "esbuild src/client/index.tsx --bundle --splitting --format=esm --platform=browser --outdir=public/dist --resolve-extensions=.tsx,.ts,.jsx,.js"
   }
 }
