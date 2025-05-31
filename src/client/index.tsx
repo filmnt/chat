@@ -211,8 +211,8 @@ function App() {
     if (!isInitialSyncComplete) return;
     const lastGreetingTime = localStorage.getItem(STORAGE_KEYS.LAST_FILMNT_MESSAGE);
     const now = new Date();
-    const oneHour = 60 * 60 * 1000;
-    if (!lastGreetingTime || now.getTime() - parseInt(lastGreetingTime) >= oneHour) {
+    const fifteenMinutes = 15 * 60 * 1000;
+    if (!lastGreetingTime || now.getTime() - parseInt(lastGreetingTime) >= fifteenMinutes) {
       const hour = now.getHours();
       let greetingMessageContent;
       if (hour >= 5 && hour < 12) {
