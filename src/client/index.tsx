@@ -344,16 +344,6 @@ function App() {
             localStorage.setItem(STORAGE_KEYS.NICKNAME, newName);
             localStorage.setItem(STORAGE_KEYS.NICKNAME_COLOR, newColor);
             processedMessages.current.add(newName + newColor);
-            const nicknameChangeMessage: ChatMessage = {
-              id: nanoid(),
-              content: nicknameChanged,
-              user: '🪴Filmnt',
-              role: 'Filmnt',
-              timestamp: Date.now(),
-              isSystem: true,
-            };
-            systemMessages.current = [...systemMessages.current, nicknameChangeMessage];
-            updateMessages([...messages, nicknameChangeMessage]);
           }
         } else if (event.data.type === 'systemMessage') {
           const { message } = event.data;
@@ -372,7 +362,7 @@ function App() {
     return () => {
       window.removeEventListener('message', handleMessage);
     };
-  }, [userId, theme, messages, updateMessages, nicknameChanged]);
+  }, [userId, theme, messages, updateMessages]);
 
   useEffect(() => {
     if (showNameChange && nameInputRef.current) {
