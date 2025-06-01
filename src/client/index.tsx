@@ -270,7 +270,7 @@ function App() {
           const updatedMessages = messages.map((m) =>
             m.id === message.id
               ? {
-                  id: m.id,
+                  id: message.id,
                   content: message.content,
                   user: message.user,
                   userId: message.userId,
@@ -351,16 +351,6 @@ function App() {
             systemMessages.current = [...systemMessages.current, message];
             updateMessages([...messages, message]);
             processedMessages.current.add(message.id);
-          }
-        } else if (event.data.type === 'colorChange') {
-          const { newColor, userId: incomingUserId } = event.data;
-          if (incomingUserId === userId && !processedMessages.current.has(newColor + userId)) {
-            dispatch({
-              type: 'SET_NICKNAME_COLOR',
-              payload: { color: newColor },
-            });
-            localStorage.setItem(STORAGE_KEYS.NICKNAME_COLOR, newColor);
-            processedMessages.current.add(newColor + userId);
           }
         }
       } catch (error) {
@@ -459,18 +449,10 @@ function App() {
       });
       dispatch({ type: 'INIT_STATE', payload: { otherUserColors: updatedOtherUserColors } });
       localStorage.setItem(STORAGE_KEYS.OTHER_USER_COLORS, JSON.stringify(updatedOtherUserColors));
-      if (!processedMessages.current.has(newColor + userId)) {
-        safePostMessage({
-          type: 'colorChange',
-          userId,
-          newColor,
-        });
-        processedMessages.current.add(newColor + userId);
-      }
     } catch (error) {
       console.error('Error in handleColorChange:', error);
     }
-  }, [otherUserColors, userId]);
+  }, [otherUserColors]);
 
   const handleRandomName = () => {
     const randomName = getRandomName();
