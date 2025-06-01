@@ -235,11 +235,7 @@ function App() {
     };
     systemMessages.current = [greetingMessage];
     updateMessages([...messages, greetingMessage]);
-    safePostMessage({
-      type: 'systemMessage',
-      message: greetingMessage,
-    });
-  }, []); // Empty dependency array for initial render only
+  }, []); // Initial render only
 
   const socket = usePartySocket({
     host: websocketHost,
