@@ -219,9 +219,9 @@ function App() {
     const now = new Date();
     const hour = now.getHours();
     let greetingMessageContent;
-    if (hour >= 5 && hour < 12) {
+    if (hour >= 5 && hour < 10) {
       greetingMessageContent = `${morningGreeting} ${name}`;
-    } else if (hour >= 12 && hour < 18) {
+    } else if (hour >= 10 && hour < 18) {
       greetingMessageContent = `${dayGreeting} ${name}`;
     } else {
       greetingMessageContent = `${eveningGreeting} ${name}`;
