@@ -1,31 +1,36 @@
 {
-  "compatibility_date": "2025-04-01",
-  "main": "src/server/index.ts",
   "name": "chat",
-  "migrations": [
-    {
-      "new_sqlite_classes": ["Chat"],
-      "tag": "v1"
-    }
-  ],
+  "compatibility_date": "2024-10-15",
+  "main": "src/server/index.ts",
   "assets": {
     "directory": "./public",
     "binding": "ASSETS",
     "not_found_handling": "single-page-application"
   },
   "build": {
-    "command": "esbuild src/client/index.tsx --bundle --splitting --format=esm --platform=browser --outdir=public/dist"
+    "command": "esbuild src/client/index.tsx --bundle --splitting --format=esm --platform=browser --outdir=public/dist --resolve-extensions=.tsx,.ts,.jsx,.js"
   },
   "durable_objects": {
     "bindings": [
       {
-        "class_name": "Chat",
-        "name": "Chat"
+        "name": "Chat",
+        "class_name": "Chat"
       }
     ]
   },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_classes": [
+        "Chat"
+      ]
+    }
+  ],
   "observability": {
     "enabled": true
   },
-  "upload_source_maps": true
+  "upload_source_maps": true,
+  "placement": {
+    "mode": "smart"
+  }
 }
