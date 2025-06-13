@@ -48,7 +48,6 @@ interface ChatState {
   isBanned: boolean;
   timeoutUntil: number | null;
   originalNickname: string | null;
-  showTurnstile: boolean;
 }
 
 type ChatAction =
@@ -74,8 +73,7 @@ type ChatAction =
   | { type: 'SET_ERROR'; payload: string | null }
   | { type: 'TOGGLE_USER_LIST' }
   | { type: 'SHOW_USER_ACTIONS'; payload: { show: boolean; userId: string | null; nickname: string | null; position: { top: number; left: number } | null } }
-  | { type: 'SET_BAN_STATUS'; payload: { isBanned: boolean; timeoutUntil: number | null } }
-  | { type: 'TOGGLE_TURNSTILE'; payload: boolean };
+  | { type: 'SET_BAN_STATUS'; payload: { isBanned: boolean; timeoutUntil: number | null } };
 
 const chatReducer = (state: ChatState, action: ChatAction): ChatState => {
   switch (action.type) {
@@ -142,8 +140,6 @@ const chatReducer = (state: ChatState, action: ChatAction): ChatState => {
       };
     case 'SET_BAN_STATUS':
       return { ...state, isBanned: action.payload.isBanned, timeoutUntil: action.payload.timeoutUntil };
-    case 'TOGGLE_TURNSTILE':
-      return { ...state, showTurnstile: action.payload };
     default:
       return state;
   }
@@ -206,7 +202,6 @@ function App() {
       ? Number(localStorage.getItem(STORAGE_KEYS.TIMEOUT_UNTIL))
       : null,
     originalNickname: localStorage.getItem(STORAGE_KEYS.NICKNAME) || getRandomName(),
-    showTurnstile: true,
   });
 
   const {
@@ -240,7 +235,6 @@ function App() {
     isBanned,
     timeoutUntil,
     originalNickname,
-    showTurnstile,
   } = state;
 
   const [isInitialSyncComplete, setInitialSyncComplete] = useState(false);
@@ -273,11 +267,6 @@ function App() {
     'http://mac:8080',
     'http://tab:8080',
   ];
-
-  const handleTurnstileSuccess = useCallback((token: string) => {
-    console.log('Turnstile success, token:', token);
-    dispatch({ type: 'TOGGLE_TURNSTILE', payload: false });
-  }, []);
 
   const socket = usePartySocket({
     host: websocketHost,
@@ -717,8 +706,7 @@ function App() {
         !target.closest('.ban-list') &&
         !target.closest('.user-actions-dropdown') &&
         !target.closest('.confirm-dialog') &&
-        !target.closest('.admin-dialog') &&
-        !target.closest('.cf-turnstile')
+        !target.closest('.admin-dialog')
       ) {
         dispatch({ type: 'TOGGLE_NAME_CHANGE', payload: false });
         dispatch({ type: 'TOGGLE_ADMIN_PANEL', payload: false });
@@ -742,17 +730,6 @@ function App() {
       }
     }
   }, [adjustInputHeight, messageInput]);
-
-  useEffect(() => {
-    if (showTurnstile) {
-      console.log('Rendering Turnstile widget');
-      if (window.turnstile) {
-        console.log('Turnstile API available');
-      } else {
-        console.warn('Turnstile API not available');
-      }
-    }
-  }, [showTurnstile]);
 
   const handleNameChange = useCallback(() => {
     if (!newName.trim()) {
@@ -930,256 +907,245 @@ function App() {
   }, []);
 
   return (
-    <div className="chat-container">
-      <div className={`chat ${showTurnstile ? 'disabled-chat' : ''}`}>
-        <div className="nickname-form">
-          <div className="user-count" onClick={() => dispatch({ type: 'TOGGLE_USER_LIST' })}>
-            <i className="fa-solid fa-users"></i> {connectedUsers.length}
-            {showUserList && (
-              <div className="user-dropdown">
-                {connectedUsers.map((user) => (
-                  <div key={user} className="user-dropdown-item" style={{ color: otherUserColors[user] || assignOtherUserColor(user) }}>
-                    {user}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-          <button
-            className="change-nickname"
-            onClick={() => dispatch({ type: 'TOGGLE_NAME_CHANGE', payload: true })}
-            disabled={isAdmin}
-          >
-            <i className="fa-solid fa-id-card"></i>
-          </button>
-          <button
-            className="admin-toggle"
-            onClick={() => (isAdmin ? dispatch({ type: 'TOGGLE_ADMIN_PANEL', payload: !showAdminPanel }) : dispatch({ type: 'TOGGLE_API_KEY_DIALOG', payload: true }))}
-          >
-            <i className="fa-solid fa-gear"></i>
-          </button>
-        </div>
-        <div className="messages" ref={messagesContainerRef}>
-          {showScrollButtons && (
-            <div className="scroll-buttons">
-              <button className="scroll-button" onClick={handleScrollToTop}>
-                <i className="fa-solid fa-arrow-up"></i>
-              </button>
-              <button className="scroll-button" onClick={handleScrollToBottom}>
-                <i className="fa-solid fa-arrow-down"></i>
-              </button>
-            </div>
-          )}
-          {messages.map((msg) => (
-            <div key={msg.id} className="message">
-              <div
-                className="user-content"
-                style={{
-                  color: msg.isSystem ? '#64B5F6' : msg.userId === userId ? nicknameColor : otherUserColors[msg.user] || assignOtherUserColor(msg.user),
-                }}
-                onClick={(e) => handleUserClick(e, msg.userId, msg.user)}
-              >
-                {msg.user}
-              </div>
-              <div className="message-content" style={{ fontWeight: msg.userId === userId ? 'bold' : 'normal' }}>
-                {msg.content}
-              </div>
-            </div>
-          ))}
-          <div ref={messagesEndRef} />
-        </div>
-        <form
-          className="chat-form"
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleMessageSubmit();
-          }}
-        >
-          <button
-            className="nickname-box"
-            style={{ color: nicknameColor, textTransform: 'none' }}
-            onClick={handleColorChange}
-            onTouchStart={handleColorChange}
-          >
-            {name || 'Guest'}
-          </button>
-          <textarea
-            name="content"
-            className="message-input"
-            placeholder={
-              error
-                ? error
-                : isBanned
-                ? getTranslations().errorMessages.banned
-                : timeoutUntil && timeoutUntil > Date.now() && remainingTime !== null
-                ? `${getTranslations().timeoutMessage} (${Math.floor(remainingTime / 60)}:${(remainingTime % 60).toString().padStart(2, '0')})`
-                : isChatFrozen
-                ? getTranslations().errorMessages.chatFrozen
-                : isAdminOnly && !isAdmin
-                ? getTranslations().errorMessages.adminOnly
-                : placeholder
-            }
-            autoComplete="off"
-            autoCorrect="off"
-            maxLength={MAX_MESSAGE_LENGTH}
-            disabled={!isConnected || isChatFrozen || (isAdminOnly && !isAdmin) || isBanned || (timeoutUntil && timeoutUntil > Date.now())}
-            ref={messageInputRef}
-            value={messageInput}
-            onChange={handleInputChange}
-            onKeyDown={handleKeyDown}
-            style={{ whiteSpace: 'pre-wrap' }}
-          />
-        </form>
-        {showNameChange && (
-          <div className="nickname-dialog">
-            <div className="nickname-dialog-content">
-              <i className="fa-solid fa-xmark fa-xl close-icon" onClick={() => dispatch({ type: 'TOGGLE_NAME_CHANGE', payload: false })}></i>
-              <p>{nicknameLabel}</p>
-              <div className="input-container">
-                <input
-                  type="text"
-                  value={newName}
-                  onChange={(e) => dispatch({ type: 'SET_NEW_NAME', payload: e.target.value })}
-                  className="my-input-text"
-                  ref={nameInputRef}
-                  maxLength={MAX_NICKNAME_LENGTH}
-                  minLength={MIN_NICKNAME_LENGTH}
-                  autoComplete="off"
-                />
-              </div>
-              <div className="dialog-buttons">
-                <button type="button" className="confirm-button" onClick={handleRandomName}>
-                  <i className="fa-solid fa-shuffle"></i>
-                </button>
-                <button type="button" className="confirm-button" onClick={handleNameChange}>
-                  {confirm}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-        {showApiKeyDialog && (
-          <div className="admin-dialog">
-            <div className="admin-dialog-content">
-              <i className="fa-solid fa-xmark fa-xl close-icon" onClick={() => dispatch({ type: 'TOGGLE_API_KEY_DIALOG', payload: false })}></i>
-              <p>Enter API Key</p>
-              <div className="input-container">
-                <input
-                  type="password"
-                  value={apiKey}
-                  onChange={(e) => dispatch({ type: 'SET_API_KEY', payload: e.target.value })}
-                  className="my-input-text"
-                  ref={apiKeyInputRef}
-                  autoComplete="off"
-                />
-              </div>
-              <div className="dialog-buttons">
-                <button type="button" className="confirm-button" onClick={handleApiKeySubmit}>
-                  {confirm}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-        {showAdminPanel && isAdmin && (
-          <div className="admin-panel">
-            <div className="admin-panel-item" onClick={handleFreezeChat}>
-              <i className="fa-solid fa-snowflake"></i> {isChatFrozen ? 'Unfreeze Chat' : 'Freeze Chat'}
-            </div>
-            <div className="admin-panel-item" onClick={handleChatAdminOnly}>
-              <i className="fa-solid fa-lock"></i> {isAdminOnly ? 'Allow All Chat' : 'Admin Only Chat'}
-            </div>
-            <div className="admin-panel-item" onClick={handleClearChat}>
-              <i className="fa-solid fa-trash"></i> Clear All Chat
-            </div>
-            <div className="admin-panel-item" onClick={handleSaveChat}>
-              <i className="fa-solid fa-download"></i> Save Chat
-            </div>
-            <div className="admin-panel-item" onClick={() => dispatch({ type: 'TOGGLE_BAN_LIST', payload: true })}>
-              <i className="fa-solid fa-ban"></i> View Ban List
-            </div>
-            <div className="admin-panel-item" onClick={handleLogout}>
-              <i className="fa-solid fa-sign-out"></i> Logout
-            </div>
-          </div>
-        )}
-        {showConfirmDialog && (
-          <div className="confirm-dialog">
-            <div className="confirm-dialog-content">
-              <i
-                className="fa-solid fa-xmark fa-xl close-icon"
-                style={{ position: 'absolute', right: '15px', top: '15px' }}
-                onClick={() => dispatch({ type: 'TOGGLE_CONFIRM_DIALOG', payload: { show: false, action: null, message: '' } })}
-              ></i>
-              <p className="confirm-text">{confirmMessage}</p>
-              <div className="dialog-buttons">
-                <button
-                  type="button"
-                  className="confirm-button"
-                  onClick={() => {
-                    confirmAction && confirmAction();
-                    dispatch({ type: 'TOGGLE_CONFIRM_DIALOG', payload: { show: false, action: null, message: '' } });
-                  }}
-                >
-                  {confirm}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-        {showBanList && isAdmin && (
-          <div className="ban-list">
-            <div className="ban-list-content">
-              <i className="fa-solid fa-xmark fa-xl close-icon" onClick={() => dispatch({ type: 'TOGGLE_BAN_LIST', payload: false })}></i>
-              <p>Banned Users</p>
-              {bannedUsers.filter((user) => (!user.until || user.until > Date.now())).map((user) => (
-                <div className="ban-list-item" key={user.userId}>
-                  <span style={{ color: theme === 'light' ? '#000000' : '#ffffff' }}>
-                    {user.nickname} {user.until ? `(Until: ${new Date(user.until).toLocaleString()})` : ''}
-                  </span>
-                  <div className="ban-options-list">
-                    <button onClick={() => handleUnbanUser(user.userId)}>Unban</button>
-                    <button onClick={() => handleBanUser(user.userId, user.nickname, 60 * 1000)}>1m</button>
-                    <button onClick={() => handleBanUser(user.userId, user.nickname, 5 * 60 * 1000)}>5m</button>
-                    <button onClick={() => handleBanUser(user.userId, user.nickname, 15 * 60 * 1000)}>15m</button>
-                    <button onClick={() => handleBanUser(user.userId, user.nickname, 60 * 60 * 1000)}>1h</button>
-                    <button onClick={() => handleBanUser(user.userId, user.nickname, 24 * 60 * 60 * 1000)}>24h</button>
-                    <button onClick={() => handleBanUser(user.userId, user.nickname)}>Ban</button>
-                  </div>
+    <div className="chat">
+      <div className="nickname-form">
+        <div className="user-count" onClick={() => dispatch({ type: 'TOGGLE_USER_LIST' })}>
+          <i className="fa-solid fa-users"></i> {connectedUsers.length}
+          {showUserList && (
+            <div className="user-dropdown">
+              {connectedUsers.map((user) => (
+                <div key={user} className="user-dropdown-item" style={{ color: otherUserColors[user] || assignOtherUserColor(user) }}>
+                  {user}
                 </div>
               ))}
             </div>
+          )}
+        </div>
+        <button
+          className="change-nickname"
+          onClick={() => dispatch({ type: 'TOGGLE_NAME_CHANGE', payload: true })}
+          disabled={isAdmin}
+        >
+          <i className="fa-solid fa-id-card"></i>
+        </button>
+        <button
+          className="admin-toggle"
+          onClick={() => (isAdmin ? dispatch({ type: 'TOGGLE_ADMIN_PANEL', payload: !showAdminPanel }) : dispatch({ type: 'TOGGLE_API_KEY_DIALOG', payload: true }))}
+        >
+          <i className="fa-solid fa-gear"></i>
+        </button>
+      </div>
+      <div className="messages" ref={messagesContainerRef}>
+        {showScrollButtons && (
+          <div className="scroll-buttons">
+            <button className="scroll-button" onClick={handleScrollToTop}>
+              <i className="fa-solid fa-arrow-up"></i>
+            </button>
+            <button className="scroll-button" onClick={handleScrollToBottom}>
+              <i className="fa-solid fa-arrow-down"></i>
+            </button>
           </div>
         )}
-        {showUserActions && isAdmin && targetUserId && targetNickname && userActionsPosition && (
-          <div
-            className="user-actions-dropdown"
-            style={{
-              top: userActionsPosition.top,
-              left: userActionsPosition.left,
-              background: theme === 'dark' ? '#333333' : '#ffffff',
-              border: `1px solid ${theme === 'dark' ? '#555555' : '#dddddd'}`,
-            }}
-          >
-            <div className="user-actions-content">
-              <button onClick={() => handleDeleteUserMessages(targetUserId)}>Delete All Messages</button>
-              <button onClick={() => handleBanUser(targetUserId, targetNickname)}>Ban</button>
-              <button onClick={() => handleBanUser(targetUserId, targetNickname, 60 * 1000)}>Timeout 1m</button>
-              <button onClick={() => handleBanUser(targetUserId, targetNickname, 5 * 60 * 1000)}>Timeout 5m</button>
-              <button onClick={() => handleBanUser(targetUserId, targetNickname, 15 * 60 * 1000)}>Timeout 15m</button>
-              <button onClick={() => handleBanUser(targetUserId, targetNickname, 60 * 60 * 1000)}>Timeout 1h</button>
-              <button onClick={() => handleBanUser(targetUserId, targetNickname, 24 * 60 * 1000)}>Timeout 24h</button>
+        {messages.map((msg) => (
+          <div key={msg.id} className="message">
+            <div
+              className="user-content"
+              style={{
+                color: msg.isSystem ? '#64B5F6' : msg.userId === userId ? nicknameColor : otherUserColors[msg.user] || assignOtherUserColor(msg.user),
+              }}
+              onClick={(e) => handleUserClick(e, msg.userId, msg.user)}
+            >
+              {msg.user}
+            </div>
+            <div className="message-content" style={{ fontWeight: msg.userId === userId ? 'bold' : 'normal' }}>
+              {msg.content}
             </div>
           </div>
-        )}
+        ))}
+        <div ref={messagesEndRef} />
       </div>
-      {showTurnstile && (
-        <div className="turnstile-overlay">
-          <div
-            className="cf-turnstile"
-            data-sitekey="0x4AAAAAABg5qNGmY_EiIeSu"
-            data-callback="handleTurnstileSuccess"
-          ></div>
+      <form
+        className="chat-form"
+        onSubmit={(e) => {
+          e.preventDefault();
+          handleMessageSubmit();
+        }}
+      >
+        <button
+          className="nickname-box"
+          style={{ color: nicknameColor, textTransform: 'none' }}
+          onClick={handleColorChange}
+          onTouchStart={handleColorChange}
+        >
+          {name || 'Guest'}
+        </button>
+        <textarea
+          name="content"
+          className="message-input"
+          placeholder={
+            error
+              ? error
+              : isBanned
+              ? getTranslations().errorMessages.banned
+              : timeoutUntil && timeoutUntil > Date.now() && remainingTime !== null
+              ? `${getTranslations().timeoutMessage} (${Math.floor(remainingTime / 60)}:${(remainingTime % 60).toString().padStart(2, '0')})`
+              : isChatFrozen
+              ? getTranslations().errorMessages.chatFrozen
+              : isAdminOnly && !isAdmin
+              ? getTranslations().errorMessages.adminOnly
+              : placeholder
+          }
+          autoComplete="off"
+          autoCorrect="off"
+          maxLength={MAX_MESSAGE_LENGTH}
+          disabled={!isConnected || isChatFrozen || (isAdminOnly && !isAdmin) || isBanned || (timeoutUntil && timeoutUntil > Date.now())}
+          ref={messageInputRef}
+          value={messageInput}
+          onChange={handleInputChange}
+          onKeyDown={handleKeyDown}
+          style={{ whiteSpace: 'pre-wrap' }}
+        />
+      </form>
+      {showNameChange && (
+        <div className="nickname-dialog">
+          <div className="nickname-dialog-content">
+            <i className="fa-solid fa-xmark fa-xl close-icon" onClick={() => dispatch({ type: 'TOGGLE_NAME_CHANGE', payload: false })}></i>
+            <p>{nicknameLabel}</p>
+            <div className="input-container">
+              <input
+                type="text"
+                value={newName}
+                onChange={(e) => dispatch({ type: 'SET_NEW_NAME', payload: e.target.value })}
+                className="my-input-text"
+                ref={nameInputRef}
+                maxLength={MAX_NICKNAME_LENGTH}
+                minLength={MIN_NICKNAME_LENGTH}
+                autoComplete="off"
+              />
+            </div>
+            <div className="dialog-buttons">
+              <button type="button" className="confirm-button" onClick={handleRandomName}>
+                <i className="fa-solid fa-shuffle"></i>
+              </button>
+              <button type="button" className="confirm-button" onClick={handleNameChange}>
+                {confirm}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {showApiKeyDialog && (
+        <div className="admin-dialog">
+          <div className="admin-dialog-content">
+            <i className="fa-solid fa-xmark fa-xl close-icon" onClick={() => dispatch({ type: 'TOGGLE_API_KEY_DIALOG', payload: false })}></i>
+            <p>Enter API Key</p>
+            <div className="input-container">
+              <input
+                type="password"
+                value={apiKey}
+                onChange={(e) => dispatch({ type: 'SET_API_KEY', payload: e.target.value })}
+                className="my-input-text"
+                ref={apiKeyInputRef}
+                autoComplete="off"
+              />
+            </div>
+            <div className="dialog-buttons">
+              <button type="button" className="confirm-button" onClick={handleApiKeySubmit}>
+                {confirm}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {showAdminPanel && isAdmin && (
+        <div className="admin-panel">
+          <div className="admin-panel-item" onClick={handleFreezeChat}>
+            <i className="fa-solid fa-snowflake"></i> {isChatFrozen ? 'Unfreeze Chat' : 'Freeze Chat'}
+          </div>
+          <div className="admin-panel-item" onClick={handleChatAdminOnly}>
+            <i className="fa-solid fa-lock"></i> {isAdminOnly ? 'Allow All Chat' : 'Admin Only Chat'}
+          </div>
+          <div className="admin-panel-item" onClick={handleClearChat}>
+            <i className="fa-solid fa-trash"></i> Clear All Chat
+          </div>
+          <div className="admin-panel-item" onClick={handleSaveChat}>
+            <i className="fa-solid fa-download"></i> Save Chat
+          </div>
+          <div className="admin-panel-item" onClick={() => dispatch({ type: 'TOGGLE_BAN_LIST', payload: true })}>
+            <i className="fa-solid fa-ban"></i> View Ban List
+          </div>
+          <div className="admin-panel-item" onClick={handleLogout}>
+            <i className="fa-solid fa-sign-out"></i> Logout
+          </div>
+        </div>
+      )}
+      {showConfirmDialog && (
+        <div className="confirm-dialog">
+          <div className="confirm-dialog-content">
+            <i
+              className="fa-solid fa-xmark fa-xl close-icon"
+              style={{ position: 'absolute', right: '15px', top: '15px' }}
+              onClick={() => dispatch({ type: 'TOGGLE_CONFIRM_DIALOG', payload: { show: false, action: null, message: '' } })}
+            ></i>
+            <p className="confirm-text">{confirmMessage}</p>
+            <div className="dialog-buttons">
+              <button
+                type="button"
+                className="confirm-button"
+                onClick={() => {
+                  confirmAction && confirmAction();
+                  dispatch({ type: 'TOGGLE_CONFIRM_DIALOG', payload: { show: false, action: null, message: '' } });
+                }}
+              >
+                {confirm}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {showBanList && isAdmin && (
+        <div className="ban-list">
+          <div className="ban-list-content">
+            <i className="fa-solid fa-xmark fa-xl close-icon" onClick={() => dispatch({ type: 'TOGGLE_BAN_LIST', payload: false })}></i>
+            <p>Banned Users</p>
+            {bannedUsers.filter((user) => (!user.until || user.until > Date.now())).map((user) => (
+              <div className="ban-list-item" key={user.userId}>
+                <span style={{ color: theme === 'light' ? '#000000' : '#ffffff' }}>
+                  {user.nickname} {user.until ? `(Until: ${new Date(user.until).toLocaleString()})` : ''}
+                </span>
+                <div className="ban-options-list">
+                  <button onClick={() => handleUnbanUser(user.userId)}>Unban</button>
+                  <button onClick={() => handleBanUser(user.userId, user.nickname, 60 * 1000)}>1m</button>
+                  <button onClick={() => handleBanUser(user.userId, user.nickname, 5 * 60 * 1000)}>5m</button>
+                  <button onClick={() => handleBanUser(user.userId, user.nickname, 15 * 60 * 1000)}>15m</button>
+                  <button onClick={() => handleBanUser(user.userId, user.nickname, 60 * 60 * 1000)}>1h</button>
+                  <button onClick={() => handleBanUser(user.userId, user.nickname, 24 * 60 * 60 * 1000)}>24h</button>
+                  <button onClick={() => handleBanUser(user.userId, user.nickname)}>Ban</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      {showUserActions && isAdmin && targetUserId && targetNickname && userActionsPosition && (
+        <div
+          className="user-actions-dropdown"
+          style={{
+            top: userActionsPosition.top,
+            left: userActionsPosition.left,
+            background: theme === 'dark' ? '#333333' : '#ffffff',
+            border: `1px solid ${theme === 'dark' ? '#555555' : '#dddddd'}`,
+          }}
+        >
+          <div className="user-actions-content">
+            <button onClick={() => handleDeleteUserMessages(targetUserId)}>Delete All Messages</button>
+            <button onClick={() => handleBanUser(targetUserId, targetNickname)}>Ban</button>
+            <button onClick={() => handleBanUser(targetUserId, targetNickname, 60 * 1000)}>Timeout 1m</button>
+            <button onClick={() => handleBanUser(targetUserId, targetNickname, 5 * 60 * 1000)}>Timeout 5m</button>
+            <button onClick={() => handleBanUser(targetUserId, targetNickname, 15 * 60 * 1000)}>Timeout 15m</button>
+            <button onClick={() => handleBanUser(targetUserId, targetNickname, 60 * 60 * 1000)}>Timeout 1h</button>
+            <button onClick={() => handleBanUser(targetUserId, targetNickname, 24 * 60 * 1000)}>Timeout 24h</button>
+          </div>
         </div>
       )}
     </div>
