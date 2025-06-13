@@ -1025,7 +1025,7 @@ function App() {
             </div>
             <div className="dialog-buttons">
               <button type="button" className="confirm-button" onClick={handleRandomName}>
-                <i className="fa-solid fa-shuffle"></i>
+                <i className="fa-solid fa-rotate"></i>
               </button>
               <button type="button" className="confirm-button" onClick={handleNameChange}>
                 {confirm}
