@@ -10,10 +10,7 @@
     <link rel="stylesheet" href="css/normalize.css" />
     <link rel="stylesheet" href="css/skeleton.css" />
     <link rel="stylesheet" href="styles.css" />
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Noto+Sans&display=swap"
-    />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans&display=swap" />
     <link rel="icon" type="image/ico" href="favicon.ico" />
     <style>
       .container {
@@ -26,8 +23,30 @@
         flex-direction: column;
         box-sizing: border-box;
       }
+
+      #turnstile-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0, 0, 0, 0.2);
+        z-index: 9999;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        pointer-events: all;
+        transition: opacity 0.3s ease;
+      }
+
+      #turnstile-overlay.hidden {
+        opacity: 0;
+        pointer-events: none;
+        display: none;
+      }
     </style>
     <script src="/dist/index.js" type="module"></script>
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
   </head>
   <body>
     <div class="container">
@@ -35,5 +54,73 @@
         <div id="root"></div>
       </div>
     </div>
+
+    <div id="turnstile-overlay">
+      <div class="cf-turnstile"
+        data-sitekey="0x4AAAAAABg_BkuVyx4ZmI3L"
+        data-callback="onTurnstileSuccess"
+        data-error-callback="onTurnstileError"
+        data-retry="auto"
+        data-retry-interval="5000"
+        data-theme="managed">
+      </div>
+    </div>
+
+    <script>
+      const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      const protocol = isLocal ? 'http://' : 'https://';
+      const wsProtocol = isLocal ? 'ws://' : 'wss://';
+      const host = isLocal ? 'localhost:3600' : 'chat.filmnt.workers.dev';
+      const verifyUrl = `${protocol}${host}/verify-turnstile`;
+      const wsUrl = `${wsProtocol}${host}/chat/parties/chat/main`;
+      window.wsUrl = wsUrl; // index.js에서 참조 가능하도록 설정
+
+      window.addEventListener('load', () => {
+        if (sessionStorage.getItem('turnstile_verified') === 'true') {
+          const overlay = document.getElementById('turnstile-overlay');
+          if (overlay) {
+            overlay.classList.add('hidden');
+          }
+        }
+      });
+
+      function onTurnstileSuccess(token) {
+        const overlay = document.getElementById('turnstile-overlay');
+        if (!overlay) return;
+
+        fetch(verifyUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ token }),
+        })
+          .then((response) => {
+            if (!response.ok) throw new Error();
+            return response.json();
+          })
+          .then((data) => {
+            if (data.success) {
+              sessionStorage.setItem('turnstile_verified', 'true');
+              overlay.classList.add('hidden');
+            } else {
+              overlay.classList.remove('hidden');
+              turnstile.reset();
+            }
+          })
+          .catch(() => {
+            overlay.classList.remove('hidden');
+            turnstile.reset();
+          });
+      }
+
+      function onTurnstileError() {
+        const overlay = document.getElementById('turnstile-overlay');
+        if (overlay) {
+          overlay.classList.remove('hidden');
+          turnstile.reset();
+        }
+      }
+    </script>
   </body>
 </html>

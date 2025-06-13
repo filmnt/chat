@@ -1,27 +1,58 @@
-import type { ChatMessage, Message } from '../shared';
-
 interface Env {
   ASSETS: Fetcher;
   Chat: DurableObjectNamespace;
   API_KEY: string;
+  TURNSTILE_SECRET_KEY: string;
 }
 
 export class Chat implements DurableObject {
   state: DurableObjectState;
   messages: ChatMessage[] = [];
-  websockets: Map<WebSocket, { userId: string; nickname: string }> = new Map();
+  websockets: Map<WebSocket, { userId: string; nickname: string; verified: boolean }> = new Map();
   bannedUsers: Map<string, { nickname: string; until?: number }> = new Map();
   isChatFrozen: boolean = false;
   isAdminOnly: boolean = false;
   admins: Set<string> = new Set();
   apiKey: string;
+  turnstileSecretKey: string;
 
   constructor(state: DurableObjectState, env: Env) {
     this.state = state;
     this.apiKey = env.API_KEY;
+    this.turnstileSecretKey = env.TURNSTILE_SECRET_KEY;
   }
 
   async fetch(req: Request): Promise<Response> {
+    const url = new URL(req.url);
+
+    if (url.pathname === '/verify-turnstile') {
+      try {
+        const body = await req.json();
+        const token = body.token;
+        const ip = req.headers.get('CF-Connecting-IP');
+
+        const formData = new FormData();
+        formData.append('secret', this.turnstileSecretKey);
+        formData.append('response', token);
+        if (ip) formData.append('remoteip', ip);
+
+        const verifyResponse = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+          method: 'POST',
+          body: formData,
+        });
+        const result = await verifyResponse.json();
+
+        return new Response(JSON.stringify({ success: result.success, error: result['error-codes'] || [] }), {
+          headers: { 'Content-Type': 'application/json' },
+        });
+      } catch (error) {
+        return new Response(JSON.stringify({ success: false, error: 'Invalid request' }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+    }
+
     const upgradeHeader = req.headers.get('Upgrade');
     if (upgradeHeader !== 'websocket') {
       return new Response('Expected WebSocket', { status: 426 });
@@ -85,7 +116,7 @@ export class Chat implements DurableObject {
 
   async handleSession(ws: WebSocket) {
     ws.accept();
-    this.websockets.set(ws, { userId: '', nickname: '' });
+    this.websockets.set(ws, { userId: '', nickname: '', verified: false });
 
     await Promise.all([this.loadMessages(), this.loadBannedUsers(), this.loadStates()]);
 
@@ -110,6 +141,7 @@ export class Chat implements DurableObject {
           case 'requestSync': {
             userInfo.userId = data.userId;
             userInfo.nickname = data.nickname;
+            userInfo.verified = true; // 검증 완료로 가정
             this.websockets.set(ws, userInfo);
             ws.send(
               JSON.stringify({
@@ -130,6 +162,10 @@ export class Chat implements DurableObject {
           }
           case 'add':
           case 'update': {
+            if (!userInfo.verified) {
+              ws.send(JSON.stringify({ type: 'error', message: 'notVerified' }));
+              return;
+            }
             if (!data.isSystem && this.bannedUsers.has(userInfo.userId)) {
               const ban = this.bannedUsers.get(userInfo.userId);
               if (!ban?.until || ban.until > Date.now()) {
@@ -302,6 +338,12 @@ export class Chat implements DurableObject {
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
+
+    if (url.pathname === '/verify-turnstile') {
+      const id = env.Chat.idFromName('main');
+      const stub = env.Chat.get(id);
+      return stub.fetch(request);
+    }
 
     if (url.pathname.startsWith('/chat') || url.pathname.match(/^\/chat\/parties\/chat\/[^\/]+$/)) {
       const id = env.Chat.idFromName('main');
