@@ -70,13 +70,13 @@ export class Chat implements DurableObject {
   async loadMessages() {
     const stored = await this.state.storage.get<ChatMessage[]>('messages');
     if (stored) {
-      const cutoff = Date.now() - 7 * 24 * 3600 * 1000;
+      const cutoff = Date.now() - 24 * 3600 * 1000;
       this.messages = stored.filter((msg) => msg.timestamp >= cutoff && !msg.isSystem);
     }
   }
 
   async saveMessages() {
-    const cutoff = Date.now() - 7 * 24 * 3600 * 1000;
+    const cutoff = Date.now() - 24 * 3600 * 1000;
     this.messages = this.messages.filter((msg) => msg.timestamp >= cutoff && !msg.isSystem);
     await this.state.storage.put('messages', this.messages);
   }

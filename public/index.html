@@ -73,7 +73,7 @@
       const host = isLocal ? 'localhost:3600' : 'chat.filmnt.workers.dev';
       const verifyUrl = `${protocol}${host}/verify-turnstile`;
       const wsUrl = `${wsProtocol}${host}/chat/parties/chat/main`;
-      window.wsUrl = wsUrl; // index.js에서 참조 가능하도록 설정
+      window.wsUrl = wsUrl; 
 
       window.addEventListener('load', () => {
         if (sessionStorage.getItem('turnstile_verified') === 'true') {
