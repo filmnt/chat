@@ -932,7 +932,7 @@ function App() {
           className="admin-toggle"
           onClick={() => (isAdmin ? dispatch({ type: 'TOGGLE_ADMIN_PANEL', payload: !showAdminPanel }) : dispatch({ type: 'TOGGLE_API_KEY_DIALOG', payload: true }))}
         >
-          <i className="fa-solid fa-gear"></i>
+          <i className="fa-solid fa-key"></i>
         </button>
       </div>
       <div className="messages" ref={messagesContainerRef}>
