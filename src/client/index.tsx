@@ -926,7 +926,7 @@ function App() {
           onClick={() => dispatch({ type: 'TOGGLE_NAME_CHANGE', payload: true })}
           disabled={isAdmin}
         >
-          <i className="fa-solid fa-id-card"></i>
+          <i className="fa-solid fa-gear"></i>
         </button>
         <button
           className="admin-toggle"
