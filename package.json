@@ -26,7 +26,7 @@
     "@cloudflare/workers-types": "^4.20250705.0",
     "@types/react": "19.1.8",
     "@types/react-dom": "19.1.6",
-    "esbuild": "0.25.5",
+    "esbuild": "0.25.6",
     "typescript": "5.8.3",
     "wrangler": "4.23.0"
   },
