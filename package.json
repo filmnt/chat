@@ -20,15 +20,15 @@
     "partysocket": "1.1.4",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "react-router-dom": "7.6.3"
+    "react-router-dom": "7.7.0"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20250712.0",
+    "@cloudflare/workers-types": "^4.20250715.0",
     "@types/react": "19.1.8",
     "@types/react-dom": "19.1.6",
     "esbuild": "0.25.6",
     "typescript": "5.8.3",
-    "wrangler": "4.24.3"
+    "wrangler": "4.24.4"
   },
   "scripts": {
     "cf-typegen": "wrangler types src/server/worker-configuration.d.ts",
