@@ -18,8 +18,8 @@
     "nanoid": "5.1.5",
     "partyserver": "0.0.72",
     "partysocket": "1.1.4",
-    "react": "19.1.0",
-    "react-dom": "19.1.0",
+    "react": "19.1.1",
+    "react-dom": "19.1.1",
     "react-router-dom": "7.7.1"
   },
   "devDependencies": {
@@ -28,7 +28,7 @@
     "@types/react-dom": "19.1.6",
     "esbuild": "0.25.8",
     "typescript": "5.8.3",
-    "wrangler": "4.26.0"
+    "wrangler": "4.26.1"
   },
   "scripts": {
     "cf-typegen": "wrangler types src/server/worker-configuration.d.ts",
