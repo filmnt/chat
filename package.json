@@ -23,12 +23,12 @@
     "react-router-dom": "7.8.0"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20250810.0",
-    "@types/react": "19.1.9",
+    "@cloudflare/workers-types": "^4.20250813.0",
+    "@types/react": "19.1.10",
     "@types/react-dom": "19.1.7",
-    "esbuild": "0.25.8",
+    "esbuild": "0.25.9",
     "typescript": "5.9.2",
-    "wrangler": "4.28.1"
+    "wrangler": "4.30.0"
   },
   "scripts": {
     "cf-typegen": "wrangler types src/server/worker-configuration.d.ts",
