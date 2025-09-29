@@ -15,20 +15,20 @@
     "publish": true
   },
   "dependencies": {
-    "nanoid": "5.1.5",
-    "partyserver": "0.0.74",
-    "partysocket": "1.1.5",
+    "nanoid": "5.1.6",
+    "partyserver": "0.0.75",
+    "partysocket": "1.1.6",
     "react": "19.1.1",
     "react-dom": "19.1.1",
-    "react-router-dom": "7.9.1"
+    "react-router-dom": "7.9.3"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20250921.0",
-    "@types/react": "19.1.13",
+    "@cloudflare/workers-types": "^4.20250927.0",
+    "@types/react": "19.1.15",
     "@types/react-dom": "19.1.9",
     "esbuild": "0.25.10",
     "typescript": "5.9.2",
-    "wrangler": "4.38.0"
+    "wrangler": "4.40.2"
   },
   "scripts": {
     "cf-typegen": "wrangler types src/server/worker-configuration.d.ts",
