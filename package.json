@@ -23,8 +23,8 @@
     "react-router-dom": "7.9.6"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20251113.0",
-    "@types/react": "19.2.4",
+    "@cloudflare/workers-types": "^4.20251118.0",
+    "@types/react": "19.2.6",
     "@types/react-dom": "19.2.3",
     "esbuild": "0.27.0",
     "typescript": "5.9.3",
