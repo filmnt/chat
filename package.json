@@ -17,7 +17,7 @@
   "dependencies": {
     "nanoid": "5.1.6",
     "partyserver": "0.0.75",
-    "partysocket": "1.1.6",
+    "partysocket": "1.1.10",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-router-dom": "7.10.1"
