@@ -18,13 +18,13 @@
     "nanoid": "5.1.6",
     "partyserver": "0.1.0",
     "partysocket": "1.1.10",
-    "react": "19.2.3",
-    "react-dom": "19.2.3",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
     "react-router-dom": "7.13.0"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20260124.0",
-    "@types/react": "19.2.8",
+    "@cloudflare/workers-types": "^4.20260127.0",
+    "@types/react": "19.2.9",
     "@types/react-dom": "19.2.3",
     "esbuild": "0.27.2",
     "typescript": "5.9.3",
