@@ -16,19 +16,19 @@
   },
   "dependencies": {
     "nanoid": "5.1.11",
-    "partyserver": "0.5.5",
-    "partysocket": "1.1.18",
+    "partyserver": "0.5.6",
+    "partysocket": "1.1.19",
     "react": "19.2.6",
     "react-dom": "19.2.6",
-    "react-router-dom": "7.15.0"
+    "react-router-dom": "7.15.1"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20260510.1",
+    "@cloudflare/workers-types": "^4.20260517.1",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
     "esbuild": "0.28.0",
     "typescript": "6.0.3",
-    "wrangler": "4.90.0"
+    "wrangler": "4.92.0"
   },
   "scripts": {
     "cf-typegen": "wrangler types src/server/worker-configuration.d.ts",
