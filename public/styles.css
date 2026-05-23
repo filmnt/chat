@@ -186,9 +186,9 @@ body {
 .confirm-dialog-content {
   padding: 20px;
   border-radius: 5px;
-  width: 350px;
-  max-height: 80vh;
-  overflow-y: auto;
+  width: 350px; /* Changed to match ban-list-content */
+  max-height: 80vh; /* Added to match ban-list-content */
+  overflow-y: auto; /* Added to match ban-list-content */
   text-align: left;
   display: flex;
   flex-direction: column;
@@ -304,29 +304,29 @@ body {
   border: none;
 }
 form.chat-form {
-  padding: 6px 8px;
+  padding: 10px;
   display: flex;
   flex-wrap: nowrap;
   gap: 5px;
   min-width: 0;
   align-items: flex-start;
-  width: calc(100% - 16px);
+  width: calc(100% - 20px);
   box-sizing: border-box;
   position: fixed;
-  bottom: 8px;
-  left: 8px;
-  right: 8px;
+  bottom: 10px;
+  left: 10px;
+  right: 10px;
   z-index: 1000;
-  margin-bottom: 0;
+  margin-bottom:-10px;
 }
 .nickname-box {
-  padding: 6px 10px;
-  font-size: 15px;
+  padding: 8px 12px;
+  font-size: 16px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  line-height: 1.4;
-  height: 34px;
+  line-height: 1.5;
+  height: 38px;
   border-radius: 4px;
   flex-shrink: 0;
   cursor: pointer;
@@ -336,10 +336,10 @@ form.chat-form {
 .message-input {
   display: block;
   flex-grow: 1;
-  padding: 5px 8px;
-  line-height: 1.4;
-  min-height: 34px;
-  max-height: 90px;
+  padding: 6px 10px;
+  line-height: 1.5;
+  min-height: 38px;
+  max-height: 110px;
   box-sizing: border-box;
   resize: none;
   margin-right: 0px;
@@ -715,4 +715,3 @@ html[saved-theme="dark"] {
   background: #272727;
   color: #FFFFFF;
 }
-
