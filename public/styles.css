@@ -182,13 +182,13 @@ body {
   z-index: 1000;
 }
 .nickname-dialog-content,
-.admin-dialog-content,
+admin-dialog-content,
 .confirm-dialog-content {
   padding: 20px;
   border-radius: 5px;
-  width: 350px; /* Changed to match ban-list-content */
-  max-height: 80vh; /* Added to match ban-list-content */
-  overflow-y: auto; /* Added to match ban-list-content */
+  width: 350px;
+  max-height: 80vh;
+  overflow-y: auto;
   text-align: left;
   display: flex;
   flex-direction: column;
@@ -304,7 +304,7 @@ body {
   border: none;
 }
 form.chat-form {
-  padding: 10px;
+  padding: 6px 10px;
   display: flex;
   flex-wrap: nowrap;
   gap: 5px;
@@ -317,16 +317,16 @@ form.chat-form {
   left: 10px;
   right: 10px;
   z-index: 1000;
-  margin-bottom:-10px;
+  margin-bottom: -10px;
 }
 .nickname-box {
-  padding: 8px 12px;
-  font-size: 16px;
+  padding: 6px 10px;
+  font-size: 15px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  line-height: 1.5;
-  height: 38px;
+  line-height: 1.4;
+  height: 34px;
   border-radius: 4px;
   flex-shrink: 0;
   cursor: pointer;
@@ -336,10 +336,10 @@ form.chat-form {
 .message-input {
   display: block;
   flex-grow: 1;
-  padding: 6px 10px;
-  line-height: 1.5;
-  min-height: 38px;
-  max-height: 110px;
+  padding: 5px 8px;
+  line-height: 1.4;
+  min-height: 34px;
+  max-height: 90px;
   box-sizing: border-box;
   resize: none;
   margin-right: 0px;
@@ -359,13 +359,13 @@ input[type="submit"],
 input[type="reset"],
 input[type="button"] {
   display: inline-block;
-  height: 38px;
-  padding: 0 30px;
+  height: 34px;
+  padding: 0 24px;
   color: #555;
   text-align: center;
   font-size: 11px;
   font-weight: 600;
-  line-height: 38px;
+  line-height: 34px;
   letter-spacing: 0.1rem;
   text-transform: uppercase;
   text-decoration: none;
@@ -423,8 +423,8 @@ input[type="url"],
 input[type="password"],
 textarea,
 select {
-  height: 38px;
-  padding: 6px 10px;
+  height: 34px;
+  padding: 5px 8px;
   background-color: #fff;
   border: 1px solid #d1d1d1;
   border-radius: 4px;
@@ -444,9 +444,9 @@ textarea {
   appearance: none;
 }
 textarea {
-  min-height: 65px;
-  padding-top: 6px;
-  padding-bottom: 6px;
+  min-height: 55px;
+  padding-top: 5px;
+  padding-bottom: 5px;
 }
 input[type="email"]:focus,
 input[type="number"]:focus,
