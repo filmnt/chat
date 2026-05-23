@@ -267,7 +267,7 @@ export const translations: Record<
   }
 > = {
   en: {
-    placeholder: 'Message...',
+    placeholder: 'Enter your message...',
     send: 'Send',
     changeNickname: 'Change Nickname',
     confirm: 'Confirm',
@@ -297,7 +297,7 @@ export const translations: Record<
     },
   },
   es: {
-    placeholder: 'Mensaje...',
+    placeholder: 'Ingresa tu mensaje...',
     send: 'Enviar',
     changeNickname: 'Cambiar apodo',
     confirm: 'Confirmar',
@@ -327,7 +327,7 @@ export const translations: Record<
     },
   },
   zh: {
-    placeholder: '输入消息...',
+    placeholder: '输入您的消息...',
     send: '发送',
     changeNickname: '更改昵称',
     confirm: '确认',
@@ -357,7 +357,7 @@ export const translations: Record<
     },
   },
   hi: {
-    placeholder: 'संदेश लिखें...',
+    placeholder: 'अपना संदेश दर्ज करें...',
     send: 'भेजें',
     changeNickname: 'उपनाम बदलें',
     confirm: 'पुष्टि करें',
@@ -387,7 +387,7 @@ export const translations: Record<
     },
   },
   ar: {
-    placeholder: 'اكتب رسالتك...',
+    placeholder: 'أدخل رسالتك...',
     send: 'إرسال',
     changeNickname: 'تغيير الاسم المستعار',
     confirm: 'تأكيد',
@@ -417,7 +417,7 @@ export const translations: Record<
     },
   },
   fr: {
-    placeholder: 'Message...',
+    placeholder: 'Entrez votre message...',
     send: 'Envoyer',
     changeNickname: 'Changer de pseudo',
     confirm: 'Confirmer',
@@ -447,7 +447,7 @@ export const translations: Record<
     },
   },
   ru: {
-    placeholder: 'Сообщение...',
+    placeholder: 'Введите ваше сообщение...',
     send: 'Отправить',
     changeNickname: 'Изменить ник',
     confirm: 'Подтвердить',
@@ -477,7 +477,7 @@ export const translations: Record<
     },
   },
   pt: {
-    placeholder: 'Mensagem...',
+    placeholder: 'Digite sua mensagem...',
     send: 'Enviar',
     changeNickname: 'Alterar apelido',
     confirm: 'Confirmar',
@@ -507,7 +507,7 @@ export const translations: Record<
     },
   },
   de: {
-    placeholder: 'Nachricht...',
+    placeholder: 'Geben Sie Ihre Nachricht ein...',
     send: 'Senden',
     changeNickname: 'Spitznamen ändern',
     confirm: 'Bestätigen',
@@ -537,7 +537,7 @@ export const translations: Record<
     },
   },
   ja: {
-    placeholder: 'メッセージ...',
+    placeholder: 'メッセージを入力...',
     send: '送信',
     changeNickname: 'ニックネームを変更',
     confirm: '確認',
@@ -567,7 +567,7 @@ export const translations: Record<
     },
   },
   bn: {
-    placeholder: 'বার্তা লিখুন...',
+    placeholder: 'আপনার বার্তা লিখুন...',
     send: 'পাঠান',
     changeNickname: 'ডাকনাম পরিবর্তন করুন',
     confirm: 'নিশ্চিত করুন',
@@ -597,7 +597,7 @@ export const translations: Record<
     },
   },
   pa: {
-    placeholder: 'ਸੁਨੇਹਾ ਲਿਖੋ...',
+    placeholder: 'ਆਪਣਾ ਸੁਨੇਹਾ ਦਰਜ ਕਰੋ...',
     send: 'ਭੇਜੋ',
     changeNickname: 'ਉਪਨਾਮ ਬਦਲੋ',
     confirm: 'ਪੁਸ਼ਟੀ ਕਰੋ',
@@ -627,7 +627,7 @@ export const translations: Record<
     },
   },
   te: {
-    placeholder: 'సందేశం వ్రాయండి...',
+    placeholder: 'మీ సందేశాన్ని నమోదు చేయండి...',
     send: 'పంపండి',
     changeNickname: 'మారుపేరు మార్చండి',
     confirm: 'నిర్ధారించండి',
@@ -657,7 +657,7 @@ export const translations: Record<
     },
   },
     mr: {
-      placeholder: 'संदेश लिहा...',
+      placeholder: 'आपला संदेश प्रविष्ट करा...',
       send: 'Prाठव',
       changeNickname: 'टोणननाव बदला',
       confirm: 'पुश्टिी',
@@ -687,7 +687,7 @@ export const translations: Record<
       },
   },
   ta: {
-    placeholder: 'செய்தி எழுதுங்கள்...',
+    placeholder: 'உஙங்கள் செயதியை உள்ளிடவும்...',
     send: 'அனுப்பு',
     changeNickname: 'புனைப்பெயர் மாறறு',
     confirm: 'உறுதியப்படுத்து',
@@ -717,7 +717,7 @@ export const translations: Record<
     },
   },
   ur: {
-    placeholder: 'پیغام لکھیں...',
+    placeholder: 'اپنا پیغام درج کریں...',
     send: 'بھیجیں',
     changeNickname: 'عرفیت تبدیل کریں',
     confirm: 'تصدیق کریں',
@@ -747,7 +747,7 @@ export const translations: Record<
     },
   },
   ko: {
-    placeholder: '메시지 입력...',
+    placeholder: '메시지를 입력하세요...',
     send: '보내기',
     changeNickname: '닉네임 변경',
     confirm: '확인',
@@ -777,7 +777,7 @@ export const translations: Record<
     },
   },
   it: {
-    placeholder: 'Messaggio...',
+    placeholder: 'Inserisci il tuo messaggio...',
     send: 'Invia',
     changeNickname: 'Cambia nickname',
     confirm: 'Conferma',
@@ -807,7 +807,7 @@ export const translations: Record<
     },
   },
   vi: {
-    placeholder: 'Tin nhắn...',
+    placeholder: 'Nhập tin nhắn của bạn...',
     send: 'Gửi',
     changeNickname: 'Thay đổi biệt danh',
     confirm: 'Xác nhận',
@@ -837,7 +837,7 @@ export const translations: Record<
     },
   },
   tr: {
-    placeholder: 'Mesaj...',
+    placeholder: 'Mesajınızı girin...',
     send: 'Gönder',
     changeNickname: 'Takma adı değiştir',
     confirm: 'Onayla',
@@ -867,7 +867,7 @@ export const translations: Record<
     },
   },
   default: {
-    placeholder: 'Message...',
+    placeholder: 'Enter your message...',
     send: 'Send',
     changeNickname: 'Change Nickname',
     confirm: 'Confirm',
