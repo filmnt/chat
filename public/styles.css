@@ -715,26 +715,3 @@ html[saved-theme="dark"] {
   background: #272727;
   color: #FFFFFF;
 }
-
-@media (max-width: 420px) {
-  form.chat-form {
-    padding: 5px 6px !important;
-    bottom: 6px !important;
-    left: 6px !important;
-    right: 6px !important;
-    gap: 4px !important;
-  }
-
-  .nickname-box {
-    height: 30px !important;
-    padding: 4px 8px !important;
-    font-size: 14px !important;
-  }
-
-  .message-input {
-    min-height: 30px !important;
-    max-height: 80px !important;
-    padding: 4px 6px !important;
-    line-height: 1.3 !important;
-  }
-}
