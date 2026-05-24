@@ -443,23 +443,19 @@ function App() {
     }
   };
 
-const adjustInputHeight = useCallback(() => {
-  if (messageInputRef.current) {
-    const textarea = messageInputRef.current;
-    textarea.style.height = '38px';
-    const lineHeight = parseFloat(getComputedStyle(textarea).lineHeight);
-    const maxLines = 5;
-    const maxHeight = lineHeight * maxLines;
-    const scrollHeight = textarea.scrollHeight;
-    if (scrollHeight > 38) {
-      const newHeight = Math.min(scrollHeight, maxHeight);
+  const adjustInputHeight = useCallback(() => {
+    if (messageInputRef.current) {
+      const textarea = messageInputRef.current;
+      textarea.style.height = '38px';
+      const lineHeight = parseFloat(getComputedStyle(textarea).lineHeight);
+      const maxLines = 5;
+      const maxHeight = lineHeight * maxLines;
+      const scrollHeight = textarea.scrollHeight;
+      const newHeight = Math.max(38, Math.min(scrollHeight || 38, maxHeight));
       textarea.style.height = `${newHeight}px`;
       textarea.style.overflowY = newHeight >= maxHeight ? 'auto' : 'hidden';
-    } else {
-      textarea.style.overflowY = 'hidden';
     }
-  }
-}, []);
+  }, []);
 
   const assignOtherUserColor = useCallback(
     (user) => {
