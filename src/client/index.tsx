@@ -446,10 +446,9 @@ function App() {
   const adjustInputHeight = useCallback(() => {
     if (messageInputRef.current) {
       const textarea = messageInputRef.current;
-      const isNarrow = window.innerWidth <= 420;
-      textarea.style.height = isNarrow ? '30px' : '38px';
+      textarea.style.height = '38px';
       const lineHeight = parseFloat(getComputedStyle(textarea).lineHeight);
-      const maxLines = isNarrow ? 4 : 5;
+      const maxLines = 5;
       const maxHeight = lineHeight * maxLines;
       const scrollHeight = textarea.scrollHeight;
       const newHeight = Math.min(scrollHeight, maxHeight);
