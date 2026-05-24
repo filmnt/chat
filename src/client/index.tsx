@@ -98,7 +98,6 @@ const chatReducer = (state: ChatState, action: ChatAction): ChatState => {
         ...state,
         bannedUsers: action.payload,
         isBanned: action.payload.some((u) => u.userId === state.userId && (!u.until || u.until > Date.now())),
-        timeoutUntil: action.payload.find((u) => u.userId === state.userId)?.until || null,
       };
     case 'TOGGLE_ADMIN_PANEL':
       return { ...state, showAdminPanel: action.payload };
@@ -109,13 +108,7 @@ const chatReducer = (state: ChatState, action: ChatAction): ChatState => {
     case 'SET_API_KEY':
       return { ...state, apiKey: action.payload };
     case 'SET_ADMIN':
-      return {
-        ...state,
-        isAdmin: action.payload,
-        name: action.payload ? '🪴Filmnt' : state.originalNickname || getRandomName(),
-        newName: action.payload ? '🪴Filmnt' : state.originalNickname || getRandomName(),
-        showAdminPanel: action.payload,
-      };
+      return { ...state, isAdmin: action.payload };
     case 'TOGGLE_CHAT_FROZEN':
       return { ...state, isChatFrozen: action.payload };
     case 'TOGGLE_ADMIN_ONLY':
@@ -131,13 +124,7 @@ const chatReducer = (state: ChatState, action: ChatAction): ChatState => {
     case 'TOGGLE_USER_LIST':
       return { ...state, showUserList: !state.showUserList };
     case 'SHOW_USER_ACTIONS':
-      return {
-        ...state,
-        showUserActions: action.payload.show,
-        targetUserId: action.payload.userId,
-        targetNickname: action.payload.nickname,
-        userActionsPosition: action.payload.position,
-      };
+      return { ...state, showUserActions: action.payload.show, targetUserId: action.payload.userId, targetNickname: action.payload.nickname, userActionsPosition: action.payload.position };
     case 'SET_BAN_STATUS':
       return { ...state, isBanned: action.payload.isBanned, timeoutUntil: action.payload.timeoutUntil };
     default:
@@ -145,39 +132,16 @@ const chatReducer = (state: ChatState, action: ChatAction): ChatState => {
   }
 };
 
-function App() {
-  const lastNicknameChangeId = useRef(null);
+const App = () => {
   const [state, dispatch] = useReducer(chatReducer, {
-    userId: (() => {
-      let id = localStorage.getItem(STORAGE_KEYS.USER_ID);
-      if (!id) {
-        id = generateUserId();
-        localStorage.setItem(STORAGE_KEYS.USER_ID, id);
-      }
-      return id;
-    })(),
-    name: (() => {
-      const isAdmin = localStorage.getItem(STORAGE_KEYS.IS_ADMIN) === 'true';
-      if (isAdmin) return '🪴Filmnt';
-      let storedName = localStorage.getItem(STORAGE_KEYS.NICKNAME);
-      if (!storedName || storedName === 'undefined' || storedName === '🪴Filmnt') {
-        storedName = getRandomName();
-        localStorage.setItem(STORAGE_KEYS.NICKNAME, storedName);
-      }
-      return storedName;
-    })(),
-    nicknameColor: getRandomColor(['#64b5f6']),
+    userId: generateUserId(),
+    name: '',
+    nicknameColor: '#64B5F6',
     connectedUsers: [],
     bannedUsers: [],
     otherUserColors: {},
-    messages: (() => {
-      const stored = localStorage.getItem(STORAGE_KEYS.MESSAGES);
-      return stored ? JSON.parse(stored).filter((msg: ChatMessage) => !msg.isSystem) : [];
-    })(),
-    newName: (() => {
-      const isAdmin = localStorage.getItem(STORAGE_KEYS.IS_ADMIN) === 'true';
-      return isAdmin ? '🪴Filmnt' : localStorage.getItem(STORAGE_KEYS.NICKNAME) || getRandomName();
-    })(),
+    messages: [],
+    newName: '',
     showNameChange: false,
     showAdminPanel: false,
     showApiKeyDialog: false,
@@ -185,11 +149,11 @@ function App() {
     confirmAction: null,
     confirmMessage: '',
     apiKey: '',
-    isAdmin: localStorage.getItem(STORAGE_KEYS.IS_ADMIN) === 'true',
+    isAdmin: false,
     isChatFrozen: false,
     isAdminOnly: false,
     showBanList: false,
-    theme: localStorage.getItem('theme') || 'dark',
+    theme: 'light',
     isConnected: false,
     error: null,
     showUserList: false,
@@ -197,11 +161,9 @@ function App() {
     targetUserId: null,
     targetNickname: null,
     userActionsPosition: null,
-    isBanned: localStorage.getItem(STORAGE_KEYS.IS_BANNED) === 'true' || false,
-    timeoutUntil: localStorage.getItem(STORAGE_KEYS.TIMEOUT_UNTIL)
-      ? Number(localStorage.getItem(STORAGE_KEYS.TIMEOUT_UNTIL))
-      : null,
-    originalNickname: localStorage.getItem(STORAGE_KEYS.NICKNAME) || getRandomName(),
+    isBanned: false,
+    timeoutUntil: null,
+    originalNickname: null,
   });
 
   const {
@@ -234,195 +196,91 @@ function App() {
     userActionsPosition,
     isBanned,
     timeoutUntil,
-    originalNickname,
   } = state;
 
-  const [isInitialSyncComplete, setInitialSyncComplete] = useState(false);
-  const [isUserScrolling, setIsUserScrolling] = useState(false);
-  const [remainingTime, setRemainingTime] = useState(null);
-  const [messageTimestamps, setMessageTimestamps] = useState([]);
   const [messageInput, setMessageInput] = useState('');
+  const [placeholder, setPlaceholder] = useState('');
+  const [remainingTime, setRemainingTime] = useState<number | null>(null);
   const [showScrollButtons, setShowScrollButtons] = useState(false);
-  const room = 'main';
-  const messagesEndRef = useRef(null);
-  const messagesContainerRef = useRef(null);
-  const nameInputRef = useRef(null);
+
   const messageInputRef = useRef<HTMLTextAreaElement>(null);
-  const apiKeyInputRef = useRef(null);
-  const systemMessages = useRef([]);
-  const { placeholder, changeNickname, confirm, nicknameLabel, nicknameChanged, morningGreeting, dayGreeting, eveningGreeting } = getTranslations();
-  const MAX_MESSAGES = 10000;
+  const nameInputRef = useRef<HTMLInputElement>(null);
+  const apiKeyInputRef = useRef<HTMLInputElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const systemMessages = useRef<ChatMessage[]>([]);
+  const lastNicknameChangeId = useRef<string | null>(null);
 
-  const websocketHost = window.location.hostname.includes('localhost')
-    ? `ws://${window.location.hostname}:3600/chat`
-    : 'wss://chat.filmnt.workers.dev/chat';
+  const translations = getTranslations();
+  const { nicknameLabel, placeholder: defaultPlaceholder, confirm, nicknameChanged } = translations;
 
-  const allowedOrigins = [
-    'http://localhost:3600',
-    'http://localhost:8787',
-    'http://localhost:8080',
-    'https://filmnt.github.io',
-    'https://filmnt.pages.dev',
-    'https://chat.filmnt.workers.dev',
-    'http://mac:8080',
-    'http://tab:8080',
-  ];
+  const updateMessages = useCallback((newMessages: ChatMessage[]) => {
+    dispatch({ type: 'SET_MESSAGES', payload: newMessages });
+  }, []);
 
   const socket = usePartySocket({
-    host: websocketHost,
-    party: 'chat',
-    room,
+    host: window.location.origin,
+    room: 'chat',
     onOpen: () => {
       dispatch({ type: 'SET_CONNECTION', payload: true });
       dispatch({ type: 'SET_ERROR', payload: null });
-      const currentNickname = isAdmin ? '🪴Filmnt' : name;
-      socket.send(JSON.stringify({ type: 'requestSync', userId, nickname: currentNickname }));
-      const storedApiKey = localStorage.getItem(STORAGE_KEYS.API_KEY);
-      const storedIsAdmin = localStorage.getItem(STORAGE_KEYS.IS_ADMIN);
-      if (storedApiKey && storedIsAdmin === 'true') {
-        socket.send(JSON.stringify({ type: 'authenticate', apiKey: storedApiKey, userId }));
+      const storedNickname = localStorage.getItem(STORAGE_KEYS.NICKNAME) || getRandomName();
+      const storedColor = localStorage.getItem(STORAGE_KEYS.NICKNAME_COLOR) || '#64B5F6';
+      const storedApiKey = localStorage.getItem(STORAGE_KEYS.API_KEY) || '';
+      const storedIsAdmin = localStorage.getItem(STORAGE_KEYS.IS_ADMIN) === 'true';
+      const storedOriginalNickname = localStorage.getItem(STORAGE_KEYS.ORIGINAL_NICKNAME) || storedNickname;
+      dispatch({ type: 'SET_NICKNAME_NAME', payload: { name: storedNickname, newName: storedNickname } });
+      dispatch({ type: 'SET_NICKNAME_COLOR', payload: { color: storedColor } });
+      dispatch({ type: 'SET_API_KEY', payload: storedApiKey });
+      dispatch({ type: 'SET_ADMIN', payload: storedIsAdmin });
+      dispatch({ type: 'SET_THEME', payload: document.documentElement.getAttribute('data-theme') || 'light' });
+      if (storedIsAdmin) {
+        dispatch({ type: 'SET_NICKNAME_NAME', payload: { name: storedNickname, newName: storedNickname } });
       }
+      dispatch({ type: 'SET_BAN_STATUS', payload: { isBanned: false, timeoutUntil: null } });
+      dispatch({ type: 'SET_ORIGINAL_NICKNAME', payload: storedOriginalNickname });
+      socket.send(JSON.stringify({ type: 'join', userId, nickname: storedNickname, isAdmin: storedIsAdmin }));
     },
-    onMessage: (evt) => {
-      try {
-        const message = JSON.parse(evt.data);
-        if (message.type === 'SET_ADMIN') {
-          dispatch({ type: 'SET_ADMIN', payload: message.payload });
-          if (message.payload) {
-            localStorage.setItem(STORAGE_KEYS.API_KEY, apiKey);
-            localStorage.setItem(STORAGE_KEYS.IS_ADMIN, 'true');
-            localStorage.setItem(STORAGE_KEYS.NICKNAME, '🪴Filmnt');
-            socket.send(JSON.stringify({ type: 'updateUser', userId, nickname: '🪴Filmnt' }));
-          } else {
-            localStorage.setItem(STORAGE_KEYS.IS_ADMIN, 'false');
-            localStorage.removeItem(STORAGE_KEYS.API_KEY);
-            const storedNickname = state.originalNickname || getRandomName();
-            dispatch({ type: 'SET_NICKNAME_NAME', payload: { name: storedNickname, newName: storedNickname } });
-            localStorage.setItem(STORAGE_KEYS.NICKNAME, storedNickname);
-            socket.send(JSON.stringify({ type: 'updateUser', userId, nickname: storedNickname }));
-          }
-        } else if (message.type === 'add') {
-          const exists = messages.some((msg) => msg.id === message.id);
-          if (!exists) {
-            const newMessage = {
-              id: message.id,
-              content: message.content,
-              user: message.user,
-              userId: message.userId,
-              role: message.role,
-              timestamp: message.timestamp || Date.now(),
-              isSystem: false,
-            };
-            if (message.userId !== userId) {
-              assignOtherUserColor(message.user);
-            }
-            updateMessages([...messages, newMessage], true);
-          }
-        } else if (message.type === 'update') {
-          const updatedMessages = messages.map((msg) =>
-            msg.id === message.id
-              ? { id: message.id, content: message.content, user: msg.user, userId: message.userId, role: message.role, timestamp: message.timestamp, isSystem: false }
-              : msg
-          );
-          updateMessages(updatedMessages, true);
-        } else if (message.type === 'sync') {
-          const now = Date.now();
-          const cutoff = now - MESSAGE_PERSISTENCE_HOURS * 3600 * 1000;
-          const serverMessages = message.messages
-            .filter((msg) => msg.timestamp >= cutoff && !msg.isSystem)
-            .sort((a, b) => b.timestamp - a.timestamp)
-            .slice(0, MAX_MESSAGES);
-          const existingIds = new Set(messages.filter((msg) => !msg.isSystem).map((msg) => msg.id));
-          const newMessages = serverMessages.filter((msg) => !existingIds.has(msg.id));
-          const combinedMessages = [...messages.filter((msg) => !msg.isSystem), ...newMessages]
-            .sort((a, b) => b.timestamp - a.timestamp)
-            .slice(0, MAX_MESSAGES);
-          updateMessages([...systemMessages.current, ...combinedMessages], true);
-          serverMessages.forEach((msg) => {
-            if (msg.userId !== userId && !otherUserColors[msg.user]) {
-              assignOtherUserColor(msg.user);
-            }
-          });
-          dispatch({ type: 'SET_USERS', payload: Array.from(new Set(message.users)) });
-          dispatch({ type: 'SET_BANNED_USERS', payload: message.bannedUsers });
-          const userBan = message.bannedUsers.find((u) => u.userId === userId);
-          if (userBan) {
-            dispatch({ type: 'SET_BAN_STATUS', payload: { isBanned: !userBan.until, timeoutUntil: userBan.until || null } });
-            localStorage.setItem(STORAGE_KEYS.TIMEOUT_UNTIL, userBan.until?.toString() || '');
-            localStorage.setItem(STORAGE_KEYS.IS_BANNED, (!userBan.until).toString());
-          } else {
-            const storedTimeout = localStorage.getItem(STORAGE_KEYS.TIMEOUT_UNTIL);
-            const storedIsBanned = localStorage.getItem(STORAGE_KEYS.IS_BANNED) === 'true';
-            if (storedTimeout && Number(storedTimeout) > Date.now()) {
-              dispatch({ type: 'SET_BAN_STATUS', payload: { isBanned: storedIsBanned, timeoutUntil: Number(storedTimeout) } });
-            } else {
-              localStorage.removeItem(STORAGE_KEYS.TIMEOUT_UNTIL);
-              localStorage.setItem(STORAGE_KEYS.IS_BANNED, 'false');
-            }
-          }
-          dispatch({ type: 'TOGGLE_CHAT_FROZEN', payload: message.isChatFrozen });
-          dispatch({ type: 'TOGGLE_ADMIN_ONLY', payload: message.isAdminOnly });
-          setInitialSyncComplete(true);
-        } else if (message.type === 'users') {
-          dispatch({ type: 'SET_USERS', payload: Array.from(new Set(message.users)) });
-        } else if (message.type === 'bannedUsers') {
-          dispatch({ type: 'SET_BANNED_USERS', payload: message.bannedUsers });
-          const userBan = message.bannedUsers.find((u) => u.userId === userId);
-          if (userBan) {
-            dispatch({ type: 'SET_BAN_STATUS', payload: { isBanned: !userBan.until, timeoutUntil: userBan.until || null } });
-            localStorage.setItem(STORAGE_KEYS.TIMEOUT_UNTIL, userBan.until?.toString() || '');
-            localStorage.setItem(STORAGE_KEYS.IS_BANNED, (!userBan.until).toString());
-          } else {
-            localStorage.removeItem(STORAGE_KEYS.TIMEOUT_UNTIL);
-            localStorage.setItem(STORAGE_KEYS.IS_BANNED, 'false');
-          }
-        } else if (message.type === 'chatFrozen') {
-          dispatch({ type: 'TOGGLE_CHAT_FROZEN', payload: message.isFrozen });
-        } else if (message.type === 'adminOnly') {
-          dispatch({ type: 'TOGGLE_ADMIN_ONLY', payload: message.isAdminOnly });
-        } else if (message.type === 'clearChat') {
-          systemMessages.current = [];
-          updateMessages([]);
-        } else if (message.type === 'deleteUserMessages') {
-          const filteredMessages = messages.filter((msg) => msg.userId !== message.userId || msg.isSystem);
-          updateMessages(filteredMessages, true);
-        } else if (message.type === 'error') {
-          const translations = getTranslations().errorMessages;
-          if (message.message === 'invalidApiKey') {
-            alert("Invalid API Key.");
-          } else if (message.message === 'timeout') {
-            dispatch({ type: 'SET_BAN_STATUS', payload: { isBanned: false, timeoutUntil: message.until } });
-            localStorage.setItem(STORAGE_KEYS.TIMEOUT_UNTIL, message.until?.toString() || '');
-            localStorage.setItem(STORAGE_KEYS.IS_BANNED, 'false');
-            setMessageInput('');
-            adjustInputHeight();
-          } else if (message.message === 'banned') {
-            dispatch({ type: 'SET_BAN_STATUS', payload: { isBanned: true, timeoutUntil: null } });
-            localStorage.removeItem(STORAGE_KEYS.TIMEOUT_UNTIL);
-            localStorage.setItem(STORAGE_KEYS.IS_BANNED, 'true');
-            setMessageInput('');
-            adjustInputHeight();
-          } else if (message.message === 'frozen') {
-            dispatch({ type: 'SET_ERROR', payload: translations.chatFrozen });
-            setMessageInput('');
-            adjustInputHeight();
-          } else if (message.message === 'adminOnly') {
-            dispatch({ type: 'SET_ERROR', payload: translations.adminOnly });
-            setMessageInput('');
-            adjustInputHeight();
-          } else if (message.message === 'invalidData') {
-            dispatch({ type: 'SET_ERROR', payload: translations.processMessageFailed });
-          }
-        }
-      } catch {
-        dispatch({ type: 'SET_ERROR', payload: getTranslations().errorMessages.processMessageFailed });
+    onMessage: (event) => {
+      const message = JSON.parse(event.data);
+      if (message.type === 'init') {
+        updateMessages([...message.messages, ...systemMessages.current]);
+        dispatch({ type: 'SET_USERS', payload: message.users });
+        dispatch({ type: 'SET_BANNED_USERS', payload: message.bannedUsers || [] });
+        dispatch({ type: 'SET_CONNECTION', payload: true });
+      } else if (message.type === 'message') {
+        updateMessages([...messages.filter((msg) => !msg.isSystem), message.message, ...systemMessages.current]);
+      } else if (message.type === 'userList') {
+        dispatch({ type: 'SET_USERS', payload: message.users });
+      } else if (message.type === 'bannedUsers') {
+        dispatch({ type: 'SET_BANNED_USERS', payload: message.bannedUsers });
+      } else if (message.type === 'banStatus') {
+        dispatch({ type: 'SET_BAN_STATUS', payload: { isBanned: message.isBanned, timeoutUntil: message.timeoutUntil } });
+      } else if (message.type === 'error') {
+        dispatch({ type: 'SET_ERROR', payload: message.message });
+      } else if (message.type === 'chatFrozen') {
+        dispatch({ type: 'TOGGLE_CHAT_FROZEN', payload: message.isFrozen });
+      } else if (message.type === 'adminOnly') {
+        dispatch({ type: 'TOGGLE_ADMIN_ONLY', payload: message.isAdminOnly });
+      } else if (message.type === 'clearChat') {
+        updateMessages(systemMessages.current);
+      } else if (message.message === 'banned') {
+        dispatch({ type: 'SET_BAN_STATUS', payload: { isBanned: true, timeoutUntil: null } });
+        localStorage.removeItem(STORAGE_KEYS.TIMEOUT_UNTIL);
+        localStorage.setItem(STORAGE_KEYS.IS_BANNED, 'true');
+        setMessageInput('');
+        adjustInputHeight();
+      } else if (message.message === 'frozen') {
+        dispatch({ type: 'SET_ERROR', payload: translations.chatFrozen });
+        setMessageInput('');
+        adjustInputHeight();
+      } else if (message.message === 'adminOnly') {
+        dispatch({ type: 'SET_ERROR', payload: translations.adminOnly });
+        setMessageInput('');
+        adjustInputHeight();
+      } else if (message.message === 'invalidData') {
+        dispatch({ type: 'SET_ERROR', payload: translations.processMessageFailed });
       }
-    },
-    onError: () => {
-      dispatch({ type: 'SET_CONNECTION', payload: false });
-      dispatch({ type: 'SET_ERROR', payload: getTranslations().errorMessages.waitMoment });
-      setMessageInput('');
-      adjustInputHeight();
     },
     onClose: () => {
       dispatch({ type: 'SET_CONNECTION', payload: false });
@@ -432,17 +290,6 @@ function App() {
     },
   });
 
-  const safePostMessage = (message, targetOrigin = 'https://chat.filmnt.workers.dev') => {
-    try {
-      window.top?.postMessage(message, targetOrigin);
-      allowedOrigins.forEach((origin) => {
-        window.top?.postMessage(message, origin);
-      });
-    } catch {
-      dispatch({ type: 'SET_ERROR', payload: getTranslations().errorMessages.postMessageFailed });
-    }
-  };
-
   const adjustInputHeight = useCallback(() => {
     if (messageInputRef.current) {
       const textarea = messageInputRef.current;
@@ -451,255 +298,87 @@ function App() {
       const maxLines = 5;
       const maxHeight = lineHeight * maxLines;
       const scrollHeight = textarea.scrollHeight;
-      const newHeight = Math.min(scrollHeight, maxHeight);
+      const newHeight = Math.min(Math.max(scrollHeight, 38), maxHeight);
       textarea.style.height = `${newHeight}px`;
       textarea.style.overflowY = newHeight >= maxHeight ? 'auto' : 'hidden';
     }
   }, []);
 
-  const assignOtherUserColor = useCallback(
-    (user) => {
-      if (otherUserColors[user] && otherUserColors[user] !== '#64B5F6') return otherUserColors[user];
-      const excludeColors = ['#64B5F6', nicknameColor, ...Object.values(otherUserColors)];
-      const color = getRandomColor(excludeColors);
-      dispatch({ type: 'SET_OTHER_USER_COLOR', payload: { user, color } });
-      return color;
-    },
-    [otherUserColors, nicknameColor]
-  );
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setMessageInput(e.target.value);
+  }, []);
 
-  const updateMessages = useCallback(
-    (newMessages, fromExternal = false) => {
-      try {
-        const now = Date.now();
-        const cutoff = now - MESSAGE_PERSISTENCE_HOURS * 60 * 60 * 1000;
-        const uniqueMessages = newMessages
-          .filter((msg, index, self) => self.findIndex((m) => m.id === msg.id) === index)
-          .filter((msg) => msg.isSystem || msg.timestamp >= cutoff);
-
-        const nonSystemMessages = uniqueMessages
-          .filter((msg) => !msg.isSystem)
-          .sort((a, b) => b.timestamp - a.timestamp)
-          .slice(0, MAX_MESSAGES);
-
-        systemMessages.current = uniqueMessages
-          .filter((msg) => msg.isSystem)
-          .concat(systemMessages.current.filter((msg) => !uniqueMessages.some((m) => m.id === msg.id)));
-
-        const combinedMessages = [...nonSystemMessages, ...systemMessages.current].sort((a, b) => b.timestamp - a.timestamp);
-
-        dispatch({ type: 'SET_MESSAGES', payload: combinedMessages });
-        localStorage.setItem(STORAGE_KEYS.MESSAGES, JSON.stringify(nonSystemMessages));
-        if (messagesContainerRef.current && !isUserScrolling) {
-          messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
-        }
-      } catch {
-        dispatch({ type: 'SET_ERROR', payload: getTranslations().errorMessages.updateMessagesFailed });
-      }
-    },
-    [isUserScrolling]
-  );
-
-  const handleInputChange = useCallback(
-    (e) => {
-      setMessageInput(e.target.value);
-      adjustInputHeight();
-    },
-    [adjustInputHeight]
-  );
-
-  const handleMessageSubmit = useCallback(() => {
-    if (!socket) return;
-    if (messageInput.trim() && isConnected) {
-      if (isChatFrozen || (isAdminOnly && !isAdmin) || (!isAdmin && (isBanned || (timeoutUntil && timeoutUntil > Date.now())))) {
-        const translations = getTranslations().errorMessages;
-        dispatch({
-          type: 'SET_ERROR',
-          payload: isChatFrozen ? translations.chatFrozen : isAdminOnly && !isAdmin ? translations.adminOnly : translations.bannedOrTimedOut,
-        });
-        setMessageInput('');
-        adjustInputHeight();
-        return;
-      }
-      const now = Date.now();
-      const recentMessages = messageTimestamps.filter((ts) => now - ts < 10000);
-      if (!isAdmin && recentMessages.length >= 5) {
-        const duration = 60 * 1000;
-        socket.send(JSON.stringify({ type: 'banUser', userId, targetUserId: userId, nickname: name, duration }));
-        dispatch({ type: 'SET_BAN_STATUS', payload: { isBanned: false, timeoutUntil: now + duration } });
-        localStorage.setItem(STORAGE_KEYS.TIMEOUT_UNTIL, (now + duration).toString());
-        localStorage.setItem(STORAGE_KEYS.IS_BANNED, 'false');
-        setMessageInput('');
-        adjustInputHeight();
-        return;
-      }
-      setMessageTimestamps([...recentMessages, now]);
-      const content = (messageInput.trim() || '').slice(0, MAX_MESSAGE_LENGTH);
-      const chatMessage = {
+  const handleMessageSubmit = useCallback(async () => {
+    if (!messageInput.trim() || !isConnected) return;
+    try {
+      const message = {
         id: nanoid(),
-        content,
+        content: messageInput.trim(),
         user: name,
         userId,
-        role: isAdmin ? 'filmnt' : name,
-        timestamp: now,
-        isSystem: false,
+        role: 'user',
+        timestamp: Date.now(),
       };
-      socket.send(JSON.stringify({ type: 'add', ...chatMessage }));
+      socket.send(JSON.stringify({ type: 'message', message }));
       setMessageInput('');
       adjustInputHeight();
-      dispatch({ type: 'SET_ERROR', payload: null });
-    } else if (!isConnected) {
-      dispatch({ type: 'SET_ERROR', payload: getTranslations().errorMessages.serverDisconnected });
-      setMessageInput('');
-      adjustInputHeight();
+    } catch {
+      dispatch({ type: 'SET_ERROR', payload: getTranslations().errorMessages.postMessageFailed });
     }
-  }, [
-    socket,
-    isConnected,
-    name,
-    userId,
-    isAdmin,
-    messageTimestamps,
-    isChatFrozen,
-    isAdminOnly,
-    isBanned,
-    timeoutUntil,
-    messageInput,
-    adjustInputHeight,
-  ]);
+  }, [messageInput, isConnected, name, userId, socket, adjustInputHeight]);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.USER_ID, userId);
-    if (!isAdmin) {
-      localStorage.setItem(STORAGE_KEYS.NICKNAME, name);
-    } else {
-      localStorage.setItem(STORAGE_KEYS.NICKNAME, '🪴Filmnt');
+    if (messageInputRef.current) {
+      messageInputRef.current.focus();
     }
-    localStorage.setItem(STORAGE_KEYS.IS_ADMIN, isAdmin.toString());
-  }, [userId, name, isAdmin]);
+  }, []);
 
   useEffect(() => {
-    systemMessages.current = [];
-    const storedMessages = localStorage.getItem(STORAGE_KEYS.MESSAGES);
-    let initialMessages = [];
-    if (storedMessages) {
-      initialMessages = JSON.parse(storedMessages).filter((msg) => !msg.isSystem);
-    }
-    const hour = new Date().getHours();
-    let greeting;
-    if (hour >= 5 && hour < 10) {
-      greeting = `${morningGreeting} ${name}`;
-    } else if (hour >= 10 && hour < 18) {
-      greeting = `${dayGreeting} ${name}`;
-    } else {
-      greeting = `${eveningGreeting} ${name}`;
-    }
-    const greetingMessage = {
-      id: nanoid(),
-      content: greeting,
-      user: '🪴Filmnt',
-      userId: 'system',
-      role: 'filmnt',
-      timestamp: Date.now(),
-      isSystem: true,
-    };
-    systemMessages.current = [greetingMessage];
-    updateMessages([...initialMessages, greetingMessage]);
-  }, [updateMessages, morningGreeting, dayGreeting, eveningGreeting]);
+    setPlaceholder(defaultPlaceholder);
+  }, [defaultPlaceholder]);
 
   useEffect(() => {
-      document.documentElement.setAttribute('saved-theme', theme);
-      localStorage.setItem('theme', theme);
-
-      const handleMessage = (event) => {
-        if (!allowedOrigins.includes(event.origin)) return;
-        try {
-          if (event.data.type === 'themeChange' && ['light', 'dark'].includes(event.data.theme)) {
-            dispatch({ type: 'SET_THEME', payload: event.data.theme });
-          } else if (event.data.type === 'nicknameChange') {
-            const { newName, userId: incomingUserId } = event.data;
-            if (incomingUserId === userId && newName && !isAdmin) {
-              dispatch({ type: 'SET_NICKNAME_NAME', payload: { name: newName, newName } });
-              localStorage.setItem(STORAGE_KEYS.NICKNAME, newName);
-              socket.send(JSON.stringify({ type: 'updateUser', userId, nickname: newName }));
-            }
-          } else if (event.data.type === 'systemMessage') {
-            const { message } = event.data;
-            if (!messages.some((msg) => msg.id === message.id)) {
-              systemMessages.current = [...systemMessages.current, message];
-              updateMessages([...messages, message]);
-            }
-          } else if (event.data.type === 'users') {
-            dispatch({ type: 'SET_USERS', payload: Array.from(new Set(event.data.users)) });
-          }
-        } catch {
-          dispatch({ type: 'SET_ERROR', payload: getTranslations().errorMessages.processMessageFailed });
-        }
-      };
-
-    const handleStorage = (event) => {
-      if (event.key === STORAGE_KEYS.NICKNAME && !isAdmin) {
-        const newName = event.newValue;
-        if (newName && newName !== name) {
-          dispatch({ type: 'SET_NICKNAME_NAME', payload: { name: newName, newName } });
-          socket.send(JSON.stringify({ type: 'updateUser', userId, nickname: newName }));
-        }
-      }
-    };
-
-    window.addEventListener('message', handleMessage);
-    window.addEventListener('storage', handleStorage);
-    return () => {
-      window.removeEventListener('message', handleMessage);
-      window.removeEventListener('storage', handleStorage);
-    };
-  }, [userId, theme, messages, updateMessages, socket, isAdmin, name]);
-
-  useEffect(() => {
-    if (showNameChange && nameInputRef.current) nameInputRef.current.focus();
-    if (showApiKeyDialog && apiKeyInputRef.current) apiKeyInputRef.current.focus();
-  }, [showNameChange, showApiKeyDialog]);
-
-  useEffect(() => {
-    if (showNameChange) {
-      dispatch({ type: 'SET_NEW_NAME', payload: name });
-    }
-  }, [showNameChange, name]);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      if (messagesContainerRef.current) {
-        const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
-        const isAtBottom = scrollHeight - scrollTop - clientHeight < 10;
-        setIsUserScrolling(!isAtBottom);
-        setShowScrollButtons(messages.length > 100 && scrollTop > 100);
-      }
-    };
-    messagesContainerRef.current?.addEventListener('scroll', handleScroll);
-    return () => messagesContainerRef.current?.removeEventListener('scroll', handleScroll);
-  }, [messages.length]);
-
-  useEffect(() => {
-    if (timeoutUntil) {
+    if (timeoutUntil && timeoutUntil > Date.now()) {
       const interval = setInterval(() => {
-        const remaining = timeoutUntil - Date.now();
+        const remaining = Math.max(0, Math.floor((timeoutUntil - Date.now()) / 1000));
+        setRemainingTime(remaining);
         if (remaining <= 0) {
-          dispatch({ type: 'SET_BAN_STATUS', payload: { isBanned: false, timeoutUntil: null } });
-          localStorage.removeItem(STORAGE_KEYS.TIMEOUT_UNTIL);
-          localStorage.setItem(STORAGE_KEYS.IS_BANNED, 'false');
-          setRemainingTime(null);
           clearInterval(interval);
-        } else {
-          setRemainingTime(Math.ceil(remaining / 1000));
+          dispatch({ type: 'SET_BAN_STATUS', payload: { isBanned: false, timeoutUntil: null } });
         }
       }, 1000);
       return () => clearInterval(interval);
+    } else {
+      setRemainingTime(null);
     }
   }, [timeoutUntil]);
 
   useEffect(() => {
-    const handleClickOutside = (e) => {
-      const target = e.target;
+    const checkScroll = () => {
+      if (messagesContainerRef.current) {
+        const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
+        setShowScrollButtons(scrollHeight > clientHeight + 100);
+      }
+    };
+    const container = messagesContainerRef.current;
+    if (container) {
+      container.addEventListener('scroll', checkScroll);
+      checkScroll();
+    }
+    return () => {
+      if (container) container.removeEventListener('scroll', checkScroll);
+    };
+  }, [messages]);
+
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'auto' });
+    }
+  }, [messages]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
       if (
         !target.closest('.nickname-dialog') &&
         !target.closest('.admin-panel') &&
@@ -727,7 +406,7 @@ function App() {
       adjustInputHeight();
       return () => {
         textarea.removeEventListener('input', adjustInputHeight);
-      }
+      };
     }
   }, [adjustInputHeight, messageInput]);
 
@@ -780,6 +459,7 @@ function App() {
       const excludeColors = ['#64B5F6', ...Object.values(otherUserColors)];
       const newColor = getRandomColor(excludeColors);
       dispatch({ type: 'SET_NICKNAME_COLOR', payload: { color: newColor } });
+      localStorage.setItem(STORAGE_KEYS.NICKNAME_COLOR, newColor);
     } catch {
       dispatch({ type: 'SET_ERROR', payload: getTranslations().errorMessages.colorChangeFailed });
     }
@@ -821,7 +501,7 @@ function App() {
   }, [messages]);
 
   const handleLogout = useCallback(() => {
-    const storedNickname = originalNickname || getRandomName();
+    const storedNickname = localStorage.getItem(STORAGE_KEYS.ORIGINAL_NICKNAME) || getRandomName();
     dispatch({ type: 'SET_ADMIN', payload: false });
     localStorage.setItem(STORAGE_KEYS.IS_ADMIN, 'false');
     localStorage.removeItem(STORAGE_KEYS.API_KEY);
@@ -831,10 +511,10 @@ function App() {
     socket.send(JSON.stringify({ type: 'logoutAdmin', userId, nickname: storedNickname }));
     socket.send(JSON.stringify({ type: 'updateUser', userId, nickname: storedNickname }));
     safePostMessage({ type: 'nicknameChange', userId, newName: storedNickname });
-  }, [userId, socket, originalNickname]);
+  }, [userId, socket]);
 
   const handleBanUser = useCallback(
-    (targetUserId, nickname, duration) => {
+    (targetUserId: string, nickname: string, duration?: number) => {
       socket.send(JSON.stringify({ type: 'banUser', userId, targetUserId, nickname, duration }));
       dispatch({ type: 'SHOW_USER_ACTIONS', payload: { show: false, userId: null, nickname: null, position: null } });
     },
@@ -842,14 +522,14 @@ function App() {
   );
 
   const handleUnbanUser = useCallback(
-    (targetUserId) => {
+    (targetUserId: string) => {
       socket.send(JSON.stringify({ type: 'unbanUser', userId, targetUserId }));
     },
     [userId, socket]
   );
 
   const handleDeleteUserMessages = useCallback(
-    (targetUserId) => {
+    (targetUserId: string) => {
       socket.send(JSON.stringify({ type: 'deleteUserMessages', userId, targetUserId }));
       dispatch({ type: 'SHOW_USER_ACTIONS', payload: { show: false, userId: null, nickname: null, position: null } });
     },
@@ -857,7 +537,7 @@ function App() {
   );
 
   const handleKeyDown = useCallback(
-    (e) => {
+    (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
         handleMessageSubmit();
@@ -867,9 +547,9 @@ function App() {
   );
 
   const handleUserClick = useCallback(
-    (e, userId, nickname) => {
+    (e: React.MouseEvent, userId: string, nickname: string) => {
       if (!isAdmin || !userId || !nickname) return;
-      const rect = e.currentTarget.getBoundingClientRect();
+      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
       const chatContainer = messagesContainerRef.current?.getBoundingClientRect();
       if (!chatContainer) return;
 
@@ -1144,13 +824,13 @@ function App() {
             <button onClick={() => handleBanUser(targetUserId, targetNickname, 5 * 60 * 1000)}>Timeout 5m</button>
             <button onClick={() => handleBanUser(targetUserId, targetNickname, 15 * 60 * 1000)}>Timeout 15m</button>
             <button onClick={() => handleBanUser(targetUserId, targetNickname, 60 * 60 * 1000)}>Timeout 1h</button>
-            <button onClick={() => handleBanUser(targetUserId, targetNickname, 24 * 60 * 1000)}>Timeout 24h</button>
+            <button onClick={() => handleBanUser(targetUserId, targetNickname, 24 * 60 * 60 * 1000)}>Timeout 24h</button>
           </div>
         </div>
       )}
     </div>
   );
-}
+};
 
 const root = createRoot(document.getElementById('root'));
 root.render(
