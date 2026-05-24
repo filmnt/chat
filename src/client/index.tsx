@@ -447,12 +447,13 @@ function App() {
     if (messageInputRef.current) {
       const textarea = messageInputRef.current;
       const isNarrow = window.innerWidth <= 420;
-      textarea.style.height = isNarrow ? '30px' : '38px';
+      const baseHeight = isNarrow ? '30px' : '38px';
+      textarea.style.height = baseHeight;
       const lineHeight = parseFloat(getComputedStyle(textarea).lineHeight);
-      const maxLines = isNarrow ? 4 : 5;
+      const maxLines = isNarrow ? 3 : 5;
       const maxHeight = lineHeight * maxLines;
       const scrollHeight = textarea.scrollHeight;
-      const newHeight = Math.min(scrollHeight, maxHeight);
+      const newHeight = Math.max(Math.min(scrollHeight, maxHeight), isNarrow ? 30 : 38);
       textarea.style.height = `${newHeight}px`;
       textarea.style.overflowY = newHeight >= maxHeight ? 'auto' : 'hidden';
     }
