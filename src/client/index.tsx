@@ -443,25 +443,19 @@ function App() {
     }
   };
 
-  const adjustInputHeight = useCallback(() => {
-    if (messageInputRef.current) {
-      const textarea = messageInputRef.current;
-      const nicknameBox = document.querySelector('.nickname-box') as HTMLElement | null;
-      const baseHeight = nicknameBox ? nicknameBox.offsetHeight : 38;
-
-      textarea.style.height = `${baseHeight}px`;
-
-      const scrollHeight = textarea.scrollHeight;
-      if (scrollHeight > baseHeight) {
-        const maxHeight = baseHeight * 5;
-        const newHeight = Math.min(scrollHeight, maxHeight);
-        textarea.style.height = `${newHeight}px`;
-        textarea.style.overflowY = newHeight >= maxHeight ? 'auto' : 'hidden';
-      } else {
-        textarea.style.overflowY = 'hidden';
-      }
+const adjustInputHeight = useCallback(() => {
+  if (messageInputRef.current) {
+    const textarea = messageInputRef.current;
+    const nicknameBox = document.querySelector('.nickname-box') as HTMLElement | null;
+    const fixedHeight = nicknameBox ? nicknameBox.offsetHeight : 38;
+    textarea.style.height = `${fixedHeight}px`;
+    if (textarea.scrollHeight > fixedHeight) {
+      textarea.style.overflowY = 'auto';
+    } else {
+      textarea.style.overflowY = 'hidden';
     }
-  }, []);
+  }
+}, []);
 
   const assignOtherUserColor = useCallback(
     (user) => {
@@ -726,20 +720,16 @@ function App() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-useEffect(() => {
-  if (messageInputRef.current) {
-    const textarea = messageInputRef.current;
-    textarea.addEventListener('input', adjustInputHeight);
-
-    requestAnimationFrame(() => adjustInputHeight());
-    const timeoutId = setTimeout(() => adjustInputHeight(), 50);
-
-    return () => {
-      textarea.removeEventListener('input', adjustInputHeight);
-      clearTimeout(timeoutId);
-    };
-  }
-}, [adjustInputHeight, messageInput]);
+  useEffect(() => {
+    if (messageInputRef.current) {
+      const textarea = messageInputRef.current;
+      textarea.addEventListener('input', adjustInputHeight);
+      adjustInputHeight();
+      return () => {
+        textarea.removeEventListener('input', adjustInputHeight);
+      };
+    }
+  }, [adjustInputHeight, messageInput]);
 
   const handleNameChange = useCallback(() => {
     if (!newName.trim()) {
