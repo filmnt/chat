@@ -719,67 +719,63 @@ html[saved-theme="dark"] {
 @media (max-width: 420px) {
   html, body {
     height: 100% !important;
-    min-height: 0 !important;
     overflow: hidden !important;
     margin: 0 !important;
     padding: 0 !important;
   }
   #chat {
     height: 100% !important;
-    min-height: 0 !important;
     overflow: hidden !important;
   }
   .chat {
     height: 100% !important;
     min-height: 0 !important;
+    padding: 8px 8px 0 8px !important;
+    overflow: hidden !important;
     display: flex !important;
     flex-direction: column !important;
-    padding: 10px !important;
-    overflow: hidden !important;
-    justify-content: space-between !important;
   }
   .nickname-form {
     flex: 0 0 auto !important;
     padding: 4px 0 !important;
   }
   .messages {
-    flex: 1 !important;
-    overflow-y: auto !important;
-    overflow-x: hidden !important;
+    flex: 1 1 0 !important;
     min-height: 0 !important;
     max-height: none !important;
-    margin-bottom: 0 !important;
-    padding-bottom: 50px !important;
+    margin: 0 !important;
+    padding: 8px 0 !important;
+    overflow-y: auto !important;
   }
   form.chat-form {
-    position: fixed !important;
-    bottom: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    margin: 0 !important;
-    padding: 6px 8px !important;
-    gap: 4px !important;
+    position: static !important;
+    flex: 0 0 auto !important;
     width: 100% !important;
-    box-sizing: border-box;
-    border-top: 1px solid #333;
-    background: #1A1A1A;
+    margin: 0 !important;
+    padding: 6px 0 !important;
+    gap: 6px !important;
     align-items: center !important;
-    z-index: 100;
+    border-top: 1px solid #444 !important;
+    background: transparent !important;
+    box-shadow: none !important;
   }
   :root[saved-theme="light"] form.chat-form {
-    background: #E8E8E8;
-    border-top-color: #D9D9D9;
+    border-top-color: #D9D9D9 !important;
   }
   .nickname-box {
+    height: 30px !important;
     min-height: 30px !important;
-    padding: 2px 8px !important;
-    line-height: 1.4 !important;
+    max-height: 30px !important;
+    padding: 0 8px !important;
+    line-height: 1 !important;
+    display: inline-flex !important;
+    align-items: center !important;
     white-space: nowrap;
   }
   .message-input {
     min-height: 30px !important;
     max-height: 80px !important;
-    padding: 4px 6px !important;
+    padding: 5px 8px !important;
     line-height: 1.3 !important;
   }
 }
