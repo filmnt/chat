@@ -448,8 +448,9 @@ const adjustInputHeight = useCallback(() => {
     const textarea = messageInputRef.current;
     requestAnimationFrame(() => {
       textarea.style.height = '38px';
+      const lineHeight = parseFloat(getComputedStyle(textarea).lineHeight) || 24;
       const maxLines = 5;
-      const maxHeight = 38 * maxLines;
+      const maxHeight = lineHeight * maxLines;
       const scrollHeight = textarea.scrollHeight;
       if (scrollHeight > 38) {
         const newHeight = Math.min(scrollHeight, maxHeight);
