@@ -446,18 +446,20 @@ function App() {
 const adjustInputHeight = useCallback(() => {
   if (messageInputRef.current) {
     const textarea = messageInputRef.current;
-    textarea.style.height = '38px';
-    const lineHeight = parseFloat(getComputedStyle(textarea).lineHeight);
-    const maxLines = 5;
-    const maxHeight = lineHeight * maxLines;
-    const scrollHeight = textarea.scrollHeight;
-    if (scrollHeight > 38) {
-      const newHeight = Math.min(scrollHeight, maxHeight);
-      textarea.style.height = `${newHeight}px`;
-      textarea.style.overflowY = newHeight >= maxHeight ? 'auto' : 'hidden';
-    } else {
-      textarea.style.overflowY = 'hidden';
-    }
+    requestAnimationFrame(() => {
+      textarea.style.height = '38px';
+      const lineHeight = parseFloat(getComputedStyle(textarea).lineHeight) || 24;
+      const maxLines = 5;
+      const maxHeight = lineHeight * maxLines;
+      const scrollHeight = textarea.scrollHeight;
+      if (scrollHeight > 38) {
+        const newHeight = Math.min(scrollHeight, maxHeight);
+        textarea.style.height = `${newHeight}px`;
+        textarea.style.overflowY = newHeight >= maxHeight ? 'auto' : 'hidden';
+      } else {
+        textarea.style.overflowY = 'hidden';
+      }
+    });
   }
 }, []);
 
@@ -729,9 +731,11 @@ const adjustInputHeight = useCallback(() => {
       const textarea = messageInputRef.current;
       textarea.addEventListener('input', adjustInputHeight);
       adjustInputHeight();
+      const timeoutId = setTimeout(adjustInputHeight, 50);
       return () => {
         textarea.removeEventListener('input', adjustInputHeight);
-      }
+        clearTimeout(timeoutId);
+      };
     }
   }, [adjustInputHeight, messageInput]);
 
