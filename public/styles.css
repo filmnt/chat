@@ -11,6 +11,7 @@ body {
   overflow-x: hidden;
   box-sizing: border-box;
   font-size: 1.5em;
+  background-color: #1A1A1A;
 }
 *, *:before, *:after {
   box-sizing: inherit;
