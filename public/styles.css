@@ -763,9 +763,13 @@ html[saved-theme="dark"] {
     border-top-color: #D9D9D9 !important;
   }
   .nickname-box {
+    height: 30px !important;
     min-height: 30px !important;
-    padding: 4px 8px !important;
-    line-height: 1.4 !important;
+    max-height: 30px !important;
+    padding: 0 8px !important;
+    line-height: 1 !important;
+    display: inline-flex !important;
+    align-items: center !important;
     white-space: nowrap;
   }
   .message-input {
