@@ -446,12 +446,15 @@ function App() {
 const adjustInputHeight = useCallback(() => {
   if (messageInputRef.current) {
     const textarea = messageInputRef.current;
+    const nicknameBox = document.querySelector('.nickname-box') as HTMLElement | null;
+    const targetHeight = nicknameBox ? nicknameBox.offsetHeight : 38;
     requestAnimationFrame(() => {
-      textarea.style.height = '38px';
+      textarea.style.height = `${targetHeight}px`;
+      const lineHeight = parseFloat(getComputedStyle(textarea).lineHeight) || 24;
       const maxLines = 5;
-      const maxHeight = 38 * maxLines;
+      const maxHeight = lineHeight * maxLines;
       const scrollHeight = textarea.scrollHeight;
-      if (scrollHeight > 38) {
+      if (scrollHeight > targetHeight) {
         const newHeight = Math.min(scrollHeight, maxHeight);
         textarea.style.height = `${newHeight}px`;
         textarea.style.overflowY = newHeight >= maxHeight ? 'auto' : 'hidden';
@@ -730,10 +733,12 @@ const adjustInputHeight = useCallback(() => {
       const textarea = messageInputRef.current;
       textarea.addEventListener('input', adjustInputHeight);
       adjustInputHeight();
-      const timeoutId = setTimeout(adjustInputHeight, 50);
+      const t1 = setTimeout(adjustInputHeight, 30);
+      const t2 = setTimeout(adjustInputHeight, 80);
       return () => {
         textarea.removeEventListener('input', adjustInputHeight);
-        clearTimeout(timeoutId);
+        clearTimeout(t1);
+        clearTimeout(t2);
       };
     }
   }, [adjustInputHeight, messageInput]);
