@@ -451,7 +451,7 @@ function App() {
       const maxLines = 5;
       const maxHeight = lineHeight * maxLines;
       const scrollHeight = textarea.scrollHeight;
-      const newHeight = scrollHeight > 38 ? Math.min(scrollHeight, maxHeight) : 38;
+      const newHeight = Math.max(38, Math.min(scrollHeight || 38, maxHeight));
       textarea.style.height = `${newHeight}px`;
       textarea.style.overflowY = newHeight >= maxHeight ? 'auto' : 'hidden';
     }
