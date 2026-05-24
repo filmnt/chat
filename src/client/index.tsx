@@ -432,7 +432,7 @@ function App() {
     },
   });
 
-  const safePostMessage = (message, targetOrigin = '*') => {
+  const safePostMessage = (message, targetOrigin = 'https://chat.filmnt.workers.dev') => {
     try {
       window.top?.postMessage(message, targetOrigin);
       allowedOrigins.forEach((origin) => {
