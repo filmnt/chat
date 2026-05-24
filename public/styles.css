@@ -312,7 +312,7 @@ form.chat-form {
   align-items: flex-start;
   width: calc(100% - 20px);
   box-sizing: border-box;
-  position: fixed;
+  position: absolute;
   bottom: 10px;
   left: 10px;
   right: 10px;
