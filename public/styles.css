@@ -338,7 +338,7 @@ form.chat-form {
   flex-grow: 1;
   padding: 6px 10px;
   line-height: 1.5;
-  min-height: 38px;
+  height: 38px;
   max-height: 110px;
   box-sizing: border-box;
   resize: none;
