@@ -447,13 +447,16 @@ function App() {
     if (messageInputRef.current) {
       const textarea = messageInputRef.current;
       textarea.style.height = '38px';
-      const lineHeight = parseFloat(getComputedStyle(textarea).lineHeight);
-      const maxLines = 5;
-      const maxHeight = lineHeight * maxLines;
       const scrollHeight = textarea.scrollHeight;
-      const newHeight = Math.min(scrollHeight, maxHeight);
-      textarea.style.height = `${newHeight}px`;
-      textarea.style.overflowY = newHeight >= maxHeight ? 'auto' : 'hidden';
+      if (scrollHeight > 38) {
+        const lineHeight = parseFloat(getComputedStyle(textarea).lineHeight) || 24;
+        const maxHeight = lineHeight * 5;
+        const newHeight = Math.min(scrollHeight, maxHeight);
+        textarea.style.height = `${newHeight}px`;
+        textarea.style.overflowY = newHeight >= maxHeight ? 'auto' : 'hidden';
+      } else {
+        textarea.style.overflowY = 'hidden';
+      }
     }
   }, []);
 
