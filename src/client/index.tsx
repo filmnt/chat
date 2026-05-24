@@ -448,7 +448,9 @@ function App() {
       const textarea = messageInputRef.current;
       const nicknameBox = document.querySelector('.nickname-box') as HTMLElement | null;
       const baseHeight = nicknameBox ? nicknameBox.offsetHeight : 38;
+
       textarea.style.height = `${baseHeight}px`;
+
       const scrollHeight = textarea.scrollHeight;
       if (scrollHeight > baseHeight) {
         const maxHeight = baseHeight * 5;
@@ -724,18 +726,20 @@ function App() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  useEffect(() => {
-    if (messageInputRef.current) {
-      const textarea = messageInputRef.current;
-      textarea.addEventListener('input', adjustInputHeight);
-      adjustInputHeight();
-      const timeouts = [16, 50, 120, 250, 400].map(t => setTimeout(adjustInputHeight, t));
-      return () => {
-        textarea.removeEventListener('input', adjustInputHeight);
-        timeouts.forEach(clearTimeout);
-      };
-    }
-  }, [adjustInputHeight, messageInput]);
+useEffect(() => {
+  if (messageInputRef.current) {
+    const textarea = messageInputRef.current;
+    textarea.addEventListener('input', adjustInputHeight);
+
+    requestAnimationFrame(() => adjustInputHeight());
+    const timeoutId = setTimeout(() => adjustInputHeight(), 50);
+
+    return () => {
+      textarea.removeEventListener('input', adjustInputHeight);
+      clearTimeout(timeoutId);
+    };
+  }
+}, [adjustInputHeight, messageInput]);
 
   const handleNameChange = useCallback(() => {
     if (!newName.trim()) {
