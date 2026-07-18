@@ -14,6 +14,9 @@
     "preview_image_url": "https://imagedelivery.net/wSMYJvS3Xw-n339CbDyDIA/e18406a7-a5d8-4c3d-2b9e-f59e6beb9200/public",
     "publish": true
   },
+  "overrides": {
+    "@cloudflare/workers-types": "5.20260713.1"
+  },
   "dependencies": {
     "nanoid": "6.0.0",
     "partyserver": "0.5.8",
@@ -23,7 +26,7 @@
     "react-router-dom": "7.18.1"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^5.20260713.1",
+    "@cloudflare/workers-types": "5.20260713.1",
     "@types/react": "19.2.17",
     "@types/react-dom": "19.2.3",
     "esbuild": "0.28.1",
