@@ -262,7 +262,7 @@ function App() {
     'http://localhost:8787',
     'http://localhost:8080',
     'https://filmnt.github.io',
-    'https://filmnt.pages.dev',
+    'https://filmnt.dev',
     'https://chat.filmnt.workers.dev',
     'http://mac:8080',
     'http://tab:8080',
